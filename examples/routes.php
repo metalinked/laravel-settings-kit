@@ -1,0 +1,19 @@
+<?php
+
+// routes/web.php
+
+use App\Http\Controllers\UserSettingsController;
+use App\Http\Controllers\AdminSettingsController;
+
+// Rutes per usuaris normals
+Route::middleware(['auth'])->group(function () {
+    Route::get('/settings', [UserSettingsController::class, 'show'])->name('user.settings');
+    Route::post('/settings', [UserSettingsController::class, 'update'])->name('user.settings.update');
+});
+
+// Rutes per admins
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
+    Route::get('/settings', [AdminSettingsController::class, 'globalSettings'])->name('admin.settings');
+    Route::post('/settings/global', [AdminSettingsController::class, 'updateGlobal'])->name('admin.settings.global.update');
+    Route::post('/settings/personal', [AdminSettingsController::class, 'updatePersonal'])->name('admin.settings.personal.update');
+});

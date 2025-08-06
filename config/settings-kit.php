@@ -1,0 +1,61 @@
+<?php
+
+return [
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These options control how settings are cached to improve performance.
+    |
+    */
+    'cache' => [
+        'enabled' => env('SETTINGS_KIT_CACHE_ENABLED', true),
+        'ttl' => env('SETTINGS_KIT_CACHE_TTL', 3600), // 1 hour in seconds
+        'prefix' => env('SETTINGS_KIT_CACHE_PREFIX', 'settings_kit'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database Tables
+    |--------------------------------------------------------------------------
+    |
+    | Customize the table names used by the package.
+    |
+    */
+    'tables' => [
+        'preferences' => 'preferences',
+        'preference_contents' => 'preference_contents',
+        'user_preferences' => 'user_preferences',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Locale
+    |--------------------------------------------------------------------------
+    |
+    | The default locale to use when retrieving translated content.
+    |
+    */
+    'default_locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Fallback Locale
+    |--------------------------------------------------------------------------
+    |
+    | The fallback locale to use when a translation is not available.
+    |
+    */
+    'fallback_locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | User Model
+    |--------------------------------------------------------------------------
+    |
+    | The user model to use for user-specific settings.
+    |
+    */
+    'user_model' => 'App\Models\User',
+];
