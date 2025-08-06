@@ -2,9 +2,9 @@
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/metalinked/laravel-settings-kit/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/metalinked/laravel-settings-kit/actions/workflows/tests.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/metalinked/laravel-settings-kit?style=flat-square)](https://github.com/metalinked/laravel-settings-kit/releases)
-[![Latest Stable Version](https://poser.pugx.org/metalinked/laravel-settings-kit/v/stable)](https://packagist.org/packages/metalinked/laravel-settings-kit)
-[![Total Downloads](https://poser.pugx.org/metalinked/laravel-settings-kit/downloads)](https://packagist.org/packages/metalinked/laravel-settings-kit)
-[![License](https://img.shields.io/github/license/metalinked/laravel-settings-kit?style=flat-square)](LICENSE.md)
+[![Latest Stable Version](https://img.shields.io/packagist/v/metalinked/laravel-settings-kit?style=flat-square)](https://packagist.org/packages/metalinked/laravel-settings-kit)
+[![Total Downloads](https://img.shields.io/packagist/dt/metalinked/laravel-settings-kit?style=flat-square)](https://packagist.org/packages/metalinked/laravel-settings-kit)
+[![License](https://img.shields.io/github/license/metalinked/laravel-settings-kit?style=flat-square)](https://github.com/metalinked/laravel-settings-kit/blob/main/LICENSE.md)
 
 A comprehensive Laravel package for managing global and user-specific settings with role-based permissions and multi-language support.
 
@@ -19,8 +19,6 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - 📦 **Easy Integration** - Seamless Laravel integration with service provider auto-discovery
 
 ## Installation
-
-> **Note:** This package will be available on [Packagist](https://packagist.org/packages/metalinked/laravel-settings-kit) once published.
 
 Install the package via Composer:
 
