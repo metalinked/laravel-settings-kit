@@ -15,6 +15,8 @@ parameters:
         - '#Access to an undefined property.*#'
         - '#Unable to resolve the template type.*#'
         - '#Method.*has parameter.*with no type specified#'
+        - '#Call to an undefined method.*Builder.*::forRole\(\)#'
+        - '#Call to an undefined method.*Builder.*::forCategory\(\)#'
     bootstrapFiles:
         - vendor/autoload.php
         - phpstan-bootstrap.php

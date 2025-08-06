@@ -12,7 +12,7 @@ class ImportSettingsCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'settings:import 
+    protected $signature = 'settings:import
                             {file : Path to the import file}
                             {--format=json : Import format (json or yaml)}
                             {--force : Overwrite existing settings}
@@ -33,13 +33,15 @@ class ImportSettingsCommand extends Command
         $force = $this->option('force');
         $dryRun = $this->option('dry-run');
 
-        if (!file_exists($file)) {
+        if (! file_exists($file)) {
             $this->error("File not found: {$file}");
+
             return 1;
         }
 
-        if (!in_array($format, ['json', 'yaml'])) {
+        if (! in_array($format, ['json', 'yaml'])) {
             $this->error('Format must be either json or yaml');
+
             return 1;
         }
 
@@ -51,13 +53,15 @@ class ImportSettingsCommand extends Command
             default => null,
         };
 
-        if (!$data) {
+        if (! $data) {
             $this->error('Failed to parse the import file');
+
             return 1;
         }
 
-        if (!isset($data['settings']) || !is_array($data['settings'])) {
+        if (! isset($data['settings']) || ! is_array($data['settings'])) {
             $this->error('Invalid file format: missing settings array');
+
             return 1;
         }
 
@@ -75,32 +79,35 @@ class ImportSettingsCommand extends Command
 
         try {
             foreach ($settings as $settingData) {
-                if (!isset($settingData['key'])) {
+                if (! isset($settingData['key'])) {
                     $this->warn('Skipping setting without key');
                     $errors++;
+
                     continue;
                 }
 
                 $key = $settingData['key'];
                 $existing = Preference::where('key', $key)->first();
 
-                if ($existing && !$force) {
+                if ($existing && ! $force) {
                     $this->warn("Skipping existing setting: {$key} (use --force to overwrite)");
                     $skipped++;
+
                     continue;
                 }
 
                 if ($dryRun) {
                     $action = $existing ? 'UPDATE' : 'CREATE';
                     $this->line("  {$action}: {$key}");
-                    
+
                     if (isset($settingData['translations'])) {
                         foreach ($settingData['translations'] as $lang => $translation) {
                             $this->line("    Translation ({$lang}): {$translation['title']}");
                         }
                     }
-                    
+
                     $imported++;
+
                     continue;
                 }
 
@@ -138,7 +145,7 @@ class ImportSettingsCommand extends Command
                 $imported++;
             }
 
-            if (!$dryRun) {
+            if (! $dryRun) {
                 DB::commit();
             } else {
                 DB::rollBack();
@@ -147,17 +154,18 @@ class ImportSettingsCommand extends Command
         } catch (\Exception $e) {
             DB::rollBack();
             $this->error("Import failed: {$e->getMessage()}");
+
             return 1;
         }
 
         $this->line('');
         $this->info('Import completed!');
         $this->info("Imported: {$imported}");
-        
+
         if ($skipped > 0) {
             $this->info("Skipped: {$skipped}");
         }
-        
+
         if ($errors > 0) {
             $this->warn("Errors: {$errors}");
         }

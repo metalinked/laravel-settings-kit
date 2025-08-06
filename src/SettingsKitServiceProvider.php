@@ -3,9 +3,9 @@
 namespace Metalinked\LaravelSettingsKit;
 
 use Illuminate\Support\ServiceProvider;
-use Metalinked\LaravelSettingsKit\Services\SettingsService;
 use Metalinked\LaravelSettingsKit\Console\Commands\ExportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\Commands\ImportSettingsCommand;
+use Metalinked\LaravelSettingsKit\Services\SettingsService;
 
 class SettingsKitServiceProvider extends ServiceProvider
 {

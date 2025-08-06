@@ -34,6 +34,7 @@ class UserPreference extends Model
     {
         /** @var class-string<\Illuminate\Database\Eloquent\Model> $userModel */
         $userModel = config('settings-kit.user_model', 'App\Models\User');
+
         return $this->belongsTo($userModel);
     }
 }

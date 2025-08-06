@@ -3,8 +3,8 @@
 namespace Metalinked\LaravelSettingsKit\Tests;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Orchestra\Testbench\TestCase as BaseTestCase;
 use Metalinked\LaravelSettingsKit\SettingsKitServiceProvider;
+use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
 {

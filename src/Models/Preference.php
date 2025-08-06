@@ -2,11 +2,19 @@
 
 namespace Metalinked\LaravelSettingsKit\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\App;
 
+/**
+ * @method static Builder forRole(?string $role)
+ * @method static Builder forCategory(string $category)
+ * @method mixed getDefaultValue()
+ * @method mixed getUserValue(int $userId)
+ * @method string|null getLabel(string $lang = null)
+ * @method string|null getDescription(string $lang = null)
+ */
 class Preference extends Model
 {
     protected $fillable = [
@@ -51,15 +59,15 @@ class Preference extends Model
      */
     public function getTranslatedContent(string $locale = null): ?PreferenceContent
     {
-        $locale = $locale ?? App::getLocale();
-        
+        $locale ??= App::getLocale();
+
         $content = $this->contents()->where('lang', $locale)->first();
-        
-        if (!$content) {
+
+        if (! $content) {
             $fallbackLocale = config('settings-kit.fallback_locale', 'en');
             $content = $this->contents()->where('lang', $fallbackLocale)->first();
         }
-        
+
         return $content instanceof PreferenceContent ? $content : null;
     }
 
@@ -69,6 +77,7 @@ class Preference extends Model
     public function getLabel(string $locale = null): string
     {
         $content = $this->getTranslatedContent($locale);
+
         return $content ? $content->title : $this->key;
     }
 
@@ -78,6 +87,7 @@ class Preference extends Model
     public function getDescription(string $locale = null): string
     {
         $content = $this->getTranslatedContent($locale);
+
         return $content ? $content->text : '';
     }
 
@@ -87,11 +97,11 @@ class Preference extends Model
     public function getUserValue(int $userId): mixed
     {
         $userPreference = $this->userPreferences()->where('user_id', $userId)->first();
-        
+
         if ($userPreference) {
             return $this->castValue($userPreference->value);
         }
-        
+
         return $this->getDefaultValue();
     }
 
@@ -105,7 +115,7 @@ class Preference extends Model
             ['user_id' => $userId],
             ['value' => $this->prepareValue($value)]
         );
-        
+
         return $userPreference;
     }
 

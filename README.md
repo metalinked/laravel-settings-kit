@@ -1,10 +1,10 @@
 # Laravel Settings Kit
 
-[![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/metalinked/laravel-settings-kit/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/metalinked/laravel-settings-kit/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/metalinked/laravel-settings-kit/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/metalinked/laravel-settings-kit/actions/workflows/tests.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/metalinked/laravel-settings-kit?style=flat-square)](https://github.com/metalinked/laravel-settings-kit/releases)
-[![License](https://img.shields.io/github/license/metalinked/laravel-settings-kit?style=flat-square)](LICENSE.md)
 [![Latest Stable Version](https://poser.pugx.org/metalinked/laravel-settings-kit/v/stable)](https://packagist.org/packages/metalinked/laravel-settings-kit)
 [![Total Downloads](https://poser.pugx.org/metalinked/laravel-settings-kit/downloads)](https://packagist.org/packages/metalinked/laravel-settings-kit)
+[![License](https://img.shields.io/github/license/metalinked/laravel-settings-kit?style=flat-square)](LICENSE.md)
 
 A comprehensive Laravel package for managing global and user-specific settings with role-based permissions and multi-language support.
 

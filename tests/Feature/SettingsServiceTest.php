@@ -45,7 +45,7 @@ class SettingsServiceTest extends TestCase
         ]);
 
         Settings::set('allow_comments', false);
-        
+
         $value = Settings::get('allow_comments');
         $this->assertFalse($value);
     }
@@ -60,11 +60,11 @@ class SettingsServiceTest extends TestCase
 
         // User specific value
         Settings::set('email_notifications', false, 1);
-        
+
         // Check user value
         $userValue = Settings::get('email_notifications', 1);
         $this->assertFalse($userValue);
-        
+
         // Check global default
         $globalValue = Settings::get('email_notifications');
         $this->assertTrue($globalValue);
@@ -79,7 +79,7 @@ class SettingsServiceTest extends TestCase
         ]);
 
         $this->assertFalse(Settings::isEnabled('maintenance_mode'));
-        
+
         Settings::set('maintenance_mode', true);
         $this->assertTrue(Settings::isEnabled('maintenance_mode'));
     }
@@ -145,7 +145,7 @@ class SettingsServiceTest extends TestCase
         ]);
 
         $settings = Settings::all();
-        
+
         $this->assertCount(2, $settings);
         $this->assertArrayHasKey('setting1', $settings);
         $this->assertArrayHasKey('setting2', $settings);
@@ -192,7 +192,7 @@ class SettingsServiceTest extends TestCase
 
         // Forget user value
         Settings::forget('test_setting', 1);
-        
+
         // Should return default value now
         $this->assertTrue(Settings::get('test_setting', 1));
     }

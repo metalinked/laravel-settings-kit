@@ -4,14 +4,13 @@ namespace Metalinked\LaravelSettingsKit\Console\Commands;
 
 use Illuminate\Console\Command;
 use Metalinked\LaravelSettingsKit\Models\Preference;
-use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
 
 class ExportSettingsCommand extends Command
 {
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'settings:export 
+    protected $signature = 'settings:export
                             {--format=json : Export format (json or yaml)}
                             {--file= : Output file path}
                             {--role= : Export only settings for specific role}
@@ -32,8 +31,9 @@ class ExportSettingsCommand extends Command
         $role = $this->option('role');
         $category = $this->option('category');
 
-        if (!in_array($format, ['json', 'yaml'])) {
+        if (! in_array($format, ['json', 'yaml'])) {
             $this->error('Format must be either json or yaml');
+
             return 1;
         }
 

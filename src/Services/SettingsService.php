@@ -42,7 +42,7 @@ class SettingsService
     {
         $preference = $this->findPreference($key);
 
-        if (!$preference) {
+        if (! $preference) {
             throw new \InvalidArgumentException("Preference with key '{$key}' not found.");
         }
 
@@ -70,6 +70,7 @@ class SettingsService
     public function isEnabled(string $key, int $userId = null): bool
     {
         $value = $this->get($key, $userId);
+
         return (bool) $value;
     }
 
@@ -79,8 +80,8 @@ class SettingsService
     public function label(string $key, string $locale = null): string
     {
         $preference = $this->findPreference($key);
-        
-        if (!$preference) {
+
+        if (! $preference) {
             return $key;
         }
 
@@ -93,8 +94,8 @@ class SettingsService
     public function description(string $key, string $locale = null): string
     {
         $preference = $this->findPreference($key);
-        
-        if (!$preference) {
+
+        if (! $preference) {
             return '';
         }
 
@@ -126,7 +127,7 @@ class SettingsService
 
         foreach ($preferences as $preference) {
             $value = $userId ? $preference->getUserValue($userId) : $preference->getDefaultValue();
-            
+
             $result[$preference->key] = [
                 'value' => $value,
                 'type' => $preference->type,
@@ -190,8 +191,9 @@ class SettingsService
         $result = [];
 
         foreach ($preferences as $preference) {
+            /** @var \Metalinked\LaravelSettingsKit\Models\Preference $preference */
             $value = $userId ? $preference->getUserValue($userId) : $preference->getDefaultValue();
-            
+
             $result[$preference->key] = [
                 'value' => $value,
                 'type' => $preference->type,
@@ -228,7 +230,7 @@ class SettingsService
     {
         $preference = $this->findPreference($key);
 
-        if (!$preference) {
+        if (! $preference) {
             return null;
         }
 
@@ -253,6 +255,7 @@ class SettingsService
     protected function getCacheKey(string $key, int $userId = null): string
     {
         $suffix = $userId ? "user_{$userId}" : 'global';
+
         return "{$this->cachePrefix}:{$key}:{$suffix}";
     }
 
@@ -261,7 +264,7 @@ class SettingsService
      */
     protected function clearCache(string $key, int $userId = null): void
     {
-        if (!$this->cacheEnabled) {
+        if (! $this->cacheEnabled) {
             return;
         }
 
