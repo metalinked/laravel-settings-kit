@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.2...v1.0.3) (2025-08-06)
+
+
+### Bug Fixes
+
+* use Packagist license badge instead of GitHub for better reliability ([eb50456](https://github.com/metalinked/laravel-settings-kit/commit/eb504569d5f7345ead4c9d2e66cc42d9a9ac471e))
+
 ## [1.0.2](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.1...v1.0.2) (2025-08-06)
 
 
