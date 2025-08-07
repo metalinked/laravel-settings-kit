@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.4...v1.1.0) (2025-08-07)
+
+
+### Features
+
+* add Laravel 12 compatibility support ([df4f334](https://github.com/metalinked/laravel-settings-kit/commit/df4f334558f4bf4043c8126456927c7f44f527bb))
+
 ## [1.0.4](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.3...v1.0.4) (2025-08-07)
 
 
