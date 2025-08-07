@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.0...v2.0.0) (2025-08-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Settings::set() behavior changed to preserve original defaults
+
+### Features
+
+* Add REST API, global overrides system, and enhanced multilingual support ([a3b6d40](https://github.com/metalinked/laravel-settings-kit/commit/a3b6d408651c0acce731045e80d919dee1a3cba8))
+
 ## [1.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.1.0...v1.2.0) (2025-08-07)
 
 
