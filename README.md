@@ -18,6 +18,12 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - 🎨 **Clean API** - Simple and intuitive facade interface
 - 📦 **Easy Integration** - Seamless Laravel integration with service provider auto-discovery
 
+## Requirements
+
+- **PHP:** 8.1, 8.2, or 8.3
+- **Laravel:** 9.x, 10.x, 11.x, or 12.x
+- **Database:** MySQL, PostgreSQL, SQLite, or SQL Server
+
 ## Installation
 
 Install the package via Composer:
