@@ -20,13 +20,11 @@ use Illuminate\Support\Facades\Facade;
  *
  * @see \Metalinked\LaravelSettingsKit\Services\SettingsService
  */
-class Settings extends Facade
-{
+class Settings extends Facade {
     /**
      * Get the registered name of the component.
      */
-    protected static function getFacadeAccessor(): string
-    {
+    protected static function getFacadeAccessor(): string {
         return 'settings-kit';
     }
 }

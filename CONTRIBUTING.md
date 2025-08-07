@@ -1,48 +1,102 @@
 # Contributing to Laravel Settings Kit
 
-Thank you for considering contributing to Laravel Settings Kit! We welcome contributions from the community.
-
-## Development Setup
-
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/your-username/laravel-settings-kit.git`
-3. Install dependencies: `composer install`
-4. Run tests: `composer test`
-
-## Pull Request Process
-
-1. Ensure any install or build dependencies are removed before the end of the layer when doing a build.
-2. Update the README.md with details of changes to the interface, this includes new environment variables, exposed ports, useful file locations and container parameters.
-3. Increase the version numbers in any examples files and the README.md to the new version that this Pull Request would represent.
-4. You may merge the Pull Request in once you have the sign-off of two other developers, or if you do not have permission to do that, you may request the second reviewer to merge it for you.
+Thank you for your interest in contributing to Laravel Settings Kit! This guide will help you get started.
 
 ## Code Style
 
-- Follow PSR-12 coding standards
-- Write meaningful commit messages
-- Add tests for new functionality
-- Update documentation as needed
+We use PHP-CS-Fixer with a **K&R style** configuration (opening braces on the same line).
+
+### Formatting Rules
+
+- **Opening braces** on the same line as the declaration
+- **PSR-12 compliance** with K&R modifications
+- **Short array syntax** (`[]` instead of `array()`)
+- **Alphabetical imports** ordering
+- **Trailing commas** in multiline arrays
+
+### Example Code Style
+
+```php
+class ExampleClass {
+    public function exampleMethod($param1, $param2) {
+        if ($condition) {
+            return [
+                'key1' => 'value1',
+                'key2' => 'value2',
+            ];
+        }
+        
+        foreach ($items as $item) {
+            // Process item
+        }
+        
+        return $result;
+    }
+}
+```
+
+## Development Commands
+
+### Code Formatting
+```bash
+# Apply code formatting
+composer format
+
+# Check formatting without applying changes
+composer format-check
+```
+
+### Testing
+```bash
+# Run all tests
+composer test
+
+# Static analysis
+composer analyse
+
+# Run all quality checks
+composer quality
+```
+
+## Pull Request Process
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Format** your code (`composer format`)
+4. **Test** your changes (`composer test`)
+5. **Analyze** code quality (`composer analyse`)
+6. **Commit** with semantic commit messages:
+   - `feat:` for new features
+   - `fix:` for bug fixes
+   - `docs:` for documentation changes
+   - `style:` for formatting changes
+   - `refactor:` for code refactoring
+   - `test:` for adding tests
+7. **Push** to your branch
+8. **Create** a Pull Request
+
+## Code Quality Requirements
+
+All Pull Requests must pass:
+
+- ✅ **All tests** must pass (`composer test`)
+- ✅ **Code formatting** must be applied (`composer format-check`)
+- ✅ **Static analysis** must pass (`composer analyse`)
+- ✅ **No merge conflicts** with main branch
 
 ## Testing
 
-Run the test suite:
+- Write tests for new features
+- Ensure existing tests pass
+- Aim for good test coverage
+- Use descriptive test method names
 
-```bash
-composer test
-```
+## Documentation
 
-Generate coverage report:
+- Update README.md if needed
+- Add PHPDoc comments for new methods
+- Include usage examples for new features
 
-```bash
-composer test-coverage
-```
+## Questions?
 
-## Issues
-
-- Use the issue tracker to report bugs
-- Include as much detail as possible
-- Include steps to reproduce the issue
-
-## Security
-
-If you discover any security related issues, please email security@metalinked.com instead of using the issue tracker.
+Feel free to open an issue for any questions about contributing!

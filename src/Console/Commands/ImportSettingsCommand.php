@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Metalinked\LaravelSettingsKit\Models\Preference;
 use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
 
-class ImportSettingsCommand extends Command
-{
+class ImportSettingsCommand extends Command {
     /**
      * The name and signature of the console command.
      */
@@ -26,20 +25,19 @@ class ImportSettingsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): int
-    {
+    public function handle(): int {
         $file = $this->argument('file');
         $format = $this->option('format');
         $force = $this->option('force');
         $dryRun = $this->option('dry-run');
 
-        if (! file_exists($file)) {
+        if (!file_exists($file)) {
             $this->error("File not found: {$file}");
 
             return 1;
         }
 
-        if (! in_array($format, ['json', 'yaml'])) {
+        if (!in_array($format, ['json', 'yaml'])) {
             $this->error('Format must be either json or yaml');
 
             return 1;
@@ -53,13 +51,13 @@ class ImportSettingsCommand extends Command
             default => null,
         };
 
-        if (! $data) {
+        if (!$data) {
             $this->error('Failed to parse the import file');
 
             return 1;
         }
 
-        if (! isset($data['settings']) || ! is_array($data['settings'])) {
+        if (!isset($data['settings']) || !is_array($data['settings'])) {
             $this->error('Invalid file format: missing settings array');
 
             return 1;
@@ -79,7 +77,7 @@ class ImportSettingsCommand extends Command
 
         try {
             foreach ($settings as $settingData) {
-                if (! isset($settingData['key'])) {
+                if (!isset($settingData['key'])) {
                     $this->warn('Skipping setting without key');
                     $errors++;
 
@@ -89,7 +87,7 @@ class ImportSettingsCommand extends Command
                 $key = $settingData['key'];
                 $existing = Preference::where('key', $key)->first();
 
-                if ($existing && ! $force) {
+                if ($existing && !$force) {
                     $this->warn("Skipping existing setting: {$key} (use --force to overwrite)");
                     $skipped++;
 
@@ -145,12 +143,11 @@ class ImportSettingsCommand extends Command
                 $imported++;
             }
 
-            if (! $dryRun) {
+            if (!$dryRun) {
                 DB::commit();
             } else {
                 DB::rollBack();
             }
-
         } catch (\Exception $e) {
             DB::rollBack();
             $this->error("Import failed: {$e->getMessage()}");

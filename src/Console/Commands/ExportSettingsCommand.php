@@ -5,8 +5,7 @@ namespace Metalinked\LaravelSettingsKit\Console\Commands;
 use Illuminate\Console\Command;
 use Metalinked\LaravelSettingsKit\Models\Preference;
 
-class ExportSettingsCommand extends Command
-{
+class ExportSettingsCommand extends Command {
     /**
      * The name and signature of the console command.
      */
@@ -24,14 +23,13 @@ class ExportSettingsCommand extends Command
     /**
      * Execute the console command.
      */
-    public function handle(): int
-    {
+    public function handle(): int {
         $format = $this->option('format');
         $file = $this->option('file');
         $role = $this->option('role');
         $category = $this->option('category');
 
-        if (! in_array($format, ['json', 'yaml'])) {
+        if (!in_array($format, ['json', 'yaml'])) {
             $this->error('Format must be either json or yaml');
 
             return 1;

@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\App;
  * @method string|null getLabel(string $lang = null)
  * @method string|null getDescription(string $lang = null)
  */
-class Preference extends Model
-{
+class Preference extends Model {
     protected $fillable = [
         'role',
         'category',
@@ -32,8 +31,7 @@ class Preference extends Model
         'options' => 'array',
     ];
 
-    public function __construct(array $attributes = [])
-    {
+    public function __construct(array $attributes = []) {
         parent::__construct($attributes);
         $this->table = config('settings-kit.tables.preferences', 'preferences');
     }
@@ -41,29 +39,26 @@ class Preference extends Model
     /**
      * Get the preference contents (translations).
      */
-    public function contents(): HasMany
-    {
+    public function contents(): HasMany {
         return $this->hasMany(PreferenceContent::class);
     }
 
     /**
      * Get the user preferences.
      */
-    public function userPreferences(): HasMany
-    {
+    public function userPreferences(): HasMany {
         return $this->hasMany(UserPreference::class);
     }
 
     /**
      * Get the translated content for the current or specified locale.
      */
-    public function getTranslatedContent(string $locale = null): ?PreferenceContent
-    {
+    public function getTranslatedContent(string $locale = null): ?PreferenceContent {
         $locale ??= App::getLocale();
 
         $content = $this->contents()->where('lang', $locale)->first();
 
-        if (! $content) {
+        if (!$content) {
             $fallbackLocale = config('settings-kit.fallback_locale', 'en');
             $content = $this->contents()->where('lang', $fallbackLocale)->first();
         }
@@ -74,8 +69,7 @@ class Preference extends Model
     /**
      * Get the label for the current or specified locale.
      */
-    public function getLabel(string $locale = null): string
-    {
+    public function getLabel(string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
         return $content ? $content->title : $this->key;
@@ -84,8 +78,7 @@ class Preference extends Model
     /**
      * Get the description for the current or specified locale.
      */
-    public function getDescription(string $locale = null): string
-    {
+    public function getDescription(string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
         return $content ? $content->text : '';
@@ -94,8 +87,7 @@ class Preference extends Model
     /**
      * Get the user-specific value for this preference.
      */
-    public function getUserValue(int $userId): mixed
-    {
+    public function getUserValue(int $userId): mixed {
         $userPreference = $this->userPreferences()->where('user_id', $userId)->first();
 
         if ($userPreference) {
@@ -108,8 +100,7 @@ class Preference extends Model
     /**
      * Set the user-specific value for this preference.
      */
-    public function setUserValue(int $userId, mixed $value): UserPreference
-    {
+    public function setUserValue(int $userId, mixed $value): UserPreference {
         /** @var UserPreference $userPreference */
         $userPreference = $this->userPreferences()->updateOrCreate(
             ['user_id' => $userId],
@@ -122,16 +113,14 @@ class Preference extends Model
     /**
      * Get the default value with proper casting.
      */
-    public function getDefaultValue(): mixed
-    {
+    public function getDefaultValue(): mixed {
         return $this->castValue($this->default_value);
     }
 
     /**
      * Cast a value to the appropriate type.
      */
-    protected function castValue(mixed $value): mixed
-    {
+    protected function castValue(mixed $value): mixed {
         return match ($this->type) {
             'boolean' => (bool) $value,
             'integer' => (int) $value,
@@ -144,8 +133,7 @@ class Preference extends Model
     /**
      * Prepare a value for storage.
      */
-    public function prepareValue(mixed $value): string
-    {
+    public function prepareValue(mixed $value): string {
         return match ($this->type) {
             'boolean' => $value ? '1' : '0',
             'integer' => (string) $value,
@@ -157,8 +145,7 @@ class Preference extends Model
     /**
      * Scope to filter by role.
      */
-    public function scopeForRole(Builder $query, string $role = null): void
-    {
+    public function scopeForRole(Builder $query, string $role = null): void {
         if ($role === null) {
             $query->whereNull('role');
         } else {
@@ -169,8 +156,7 @@ class Preference extends Model
     /**
      * Scope to filter by category.
      */
-    public function scopeForCategory(Builder $query, string $category): void
-    {
+    public function scopeForCategory(Builder $query, string $category): void {
         $query->where('category', $category);
     }
 }

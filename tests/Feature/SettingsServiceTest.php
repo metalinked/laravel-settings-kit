@@ -7,10 +7,8 @@ use Metalinked\LaravelSettingsKit\Models\Preference;
 use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
 use Metalinked\LaravelSettingsKit\Tests\TestCase;
 
-class SettingsServiceTest extends TestCase
-{
-    public function test_can_create_preference()
-    {
+class SettingsServiceTest extends TestCase {
+    public function test_can_create_preference() {
         $preference = Settings::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -24,8 +22,7 @@ class SettingsServiceTest extends TestCase
         $this->assertTrue(Settings::exists('test_setting'));
     }
 
-    public function test_can_get_global_setting()
-    {
+    public function test_can_get_global_setting() {
         Preference::create([
             'key' => 'allow_comments',
             'type' => 'boolean',
@@ -36,8 +33,7 @@ class SettingsServiceTest extends TestCase
         $this->assertTrue($value);
     }
 
-    public function test_can_set_global_setting()
-    {
+    public function test_can_set_global_setting() {
         Preference::create([
             'key' => 'allow_comments',
             'type' => 'boolean',
@@ -50,8 +46,7 @@ class SettingsServiceTest extends TestCase
         $this->assertFalse($value);
     }
 
-    public function test_can_get_user_specific_setting()
-    {
+    public function test_can_get_user_specific_setting() {
         $preference = Preference::create([
             'key' => 'email_notifications',
             'type' => 'boolean',
@@ -70,8 +65,7 @@ class SettingsServiceTest extends TestCase
         $this->assertTrue($globalValue);
     }
 
-    public function test_is_enabled_method()
-    {
+    public function test_is_enabled_method() {
         Preference::create([
             'key' => 'maintenance_mode',
             'type' => 'boolean',
@@ -84,8 +78,7 @@ class SettingsServiceTest extends TestCase
         $this->assertTrue(Settings::isEnabled('maintenance_mode'));
     }
 
-    public function test_can_get_translated_label()
-    {
+    public function test_can_get_translated_label() {
         $preference = Preference::create([
             'key' => 'allow_comments',
             'type' => 'boolean',
@@ -110,8 +103,7 @@ class SettingsServiceTest extends TestCase
         $this->assertEquals('Permitir Comentarios', Settings::label('allow_comments', 'es'));
     }
 
-    public function test_can_get_translated_description()
-    {
+    public function test_can_get_translated_description() {
         $preference = Preference::create([
             'key' => 'allow_comments',
             'type' => 'boolean',
@@ -128,8 +120,7 @@ class SettingsServiceTest extends TestCase
         $this->assertEquals('Enable or disable comments on posts', Settings::description('allow_comments', 'en'));
     }
 
-    public function test_can_get_all_settings()
-    {
+    public function test_can_get_all_settings() {
         Preference::create([
             'key' => 'setting1',
             'type' => 'boolean',
@@ -153,8 +144,7 @@ class SettingsServiceTest extends TestCase
         $this->assertEquals('test', $settings['setting2']['value']);
     }
 
-    public function test_can_get_settings_by_category()
-    {
+    public function test_can_get_settings_by_category() {
         Preference::create([
             'key' => 'general_setting',
             'type' => 'boolean',
@@ -178,8 +168,7 @@ class SettingsServiceTest extends TestCase
         $this->assertArrayHasKey('notification_setting', $notificationSettings);
     }
 
-    public function test_can_forget_setting()
-    {
+    public function test_can_forget_setting() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -197,8 +186,7 @@ class SettingsServiceTest extends TestCase
         $this->assertTrue(Settings::get('test_setting', 1));
     }
 
-    public function test_handles_different_data_types()
-    {
+    public function test_handles_different_data_types() {
         // String
         Preference::create([
             'key' => 'string_setting',
@@ -225,8 +213,7 @@ class SettingsServiceTest extends TestCase
         $this->assertEquals(['key' => 'value'], Settings::get('json_setting'));
     }
 
-    public function test_role_based_settings()
-    {
+    public function test_role_based_settings() {
         // Global setting
         Preference::create([
             'key' => 'global_setting',

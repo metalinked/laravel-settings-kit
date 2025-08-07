@@ -7,13 +7,11 @@ use Metalinked\LaravelSettingsKit\Console\Commands\ExportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\Commands\ImportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Services\SettingsService;
 
-class SettingsKitServiceProvider extends ServiceProvider
-{
+class SettingsKitServiceProvider extends ServiceProvider {
     /**
      * Register any application services.
      */
-    public function register(): void
-    {
+    public function register(): void {
         $this->mergeConfigFrom(
             __DIR__ . '/../config/settings-kit.php',
             'settings-kit'
@@ -29,8 +27,7 @@ class SettingsKitServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
+    public function boot(): void {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
         if ($this->app->runningInConsole()) {
@@ -52,8 +49,7 @@ class SettingsKitServiceProvider extends ServiceProvider
     /**
      * Get the services provided by the provider.
      */
-    public function provides(): array
-    {
+    public function provides(): array {
         return ['settings-kit', SettingsService::class];
     }
 }

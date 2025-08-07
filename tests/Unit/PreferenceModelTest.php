@@ -7,10 +7,8 @@ use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
 use Metalinked\LaravelSettingsKit\Models\UserPreference;
 use Metalinked\LaravelSettingsKit\Tests\TestCase;
 
-class PreferenceModelTest extends TestCase
-{
-    public function test_can_create_preference()
-    {
+class PreferenceModelTest extends TestCase {
+    public function test_can_create_preference() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -24,8 +22,7 @@ class PreferenceModelTest extends TestCase
         $this->assertEquals('general', $preference->category);
     }
 
-    public function test_can_add_content_translations()
-    {
+    public function test_can_add_content_translations() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -44,8 +41,7 @@ class PreferenceModelTest extends TestCase
         $this->assertEquals($preference->id, $content->preference_id);
     }
 
-    public function test_can_set_user_preference()
-    {
+    public function test_can_set_user_preference() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -63,8 +59,7 @@ class PreferenceModelTest extends TestCase
         $this->assertEquals($preference->id, $userPref->preference_id);
     }
 
-    public function test_preference_relationships()
-    {
+    public function test_preference_relationships() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -88,8 +83,7 @@ class PreferenceModelTest extends TestCase
         $this->assertCount(1, $preference->userPreferences);
     }
 
-    public function test_get_translated_content()
-    {
+    public function test_get_translated_content() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -117,8 +111,7 @@ class PreferenceModelTest extends TestCase
         $this->assertEquals('Spanish Title', $spanishContent->title);
     }
 
-    public function test_get_user_value()
-    {
+    public function test_get_user_value() {
         $preference = Preference::create([
             'key' => 'test_setting',
             'type' => 'boolean',
@@ -133,8 +126,7 @@ class PreferenceModelTest extends TestCase
         $this->assertFalse($preference->getUserValue(1));
     }
 
-    public function test_value_casting()
-    {
+    public function test_value_casting() {
         // Boolean preference
         $boolPreference = Preference::create([
             'key' => 'bool_setting',
@@ -163,8 +155,7 @@ class PreferenceModelTest extends TestCase
         $this->assertEquals(['key' => 'value'], $jsonPreference->getDefaultValue());
     }
 
-    public function test_scopes()
-    {
+    public function test_scopes() {
         Preference::create([
             'key' => 'global_setting',
             'type' => 'boolean',
