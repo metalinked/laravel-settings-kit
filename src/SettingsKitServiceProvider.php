@@ -5,6 +5,7 @@ namespace Metalinked\LaravelSettingsKit;
 use Illuminate\Support\ServiceProvider;
 use Metalinked\LaravelSettingsKit\Console\Commands\ExportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\Commands\ImportSettingsCommand;
+use Metalinked\LaravelSettingsKit\Http\Middleware\SettingsKitApiAuth;
 use Metalinked\LaravelSettingsKit\Services\SettingsService;
 
 class SettingsKitServiceProvider extends ServiceProvider {
@@ -29,6 +30,13 @@ class SettingsKitServiceProvider extends ServiceProvider {
      */
     public function boot(): void {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+
+        // Load API routes 
+        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
+
+        // Register middleware alias
+        $router = $this->app['router'];
+        $router->aliasMiddleware('settings-kit.api.auth', SettingsKitApiAuth::class);
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

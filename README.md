@@ -6,7 +6,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/metalinked/laravel-settings-kit?style=flat-square)](https://packagist.org/packages/metalinked/laravel-settings-kit)
 [![License](https://img.shields.io/packagist/l/metalinked/laravel-settings-kit?style=flat-square)](https://github.com/metalinked/laravel-settings-kit/blob/main/LICENSE.md)
 
-A comprehensive Laravel package for managing global and user-specific settings with role-based permissions and multi-language support.
+A comprehensive Laravel package for managing global and user-specific settings with role-based permissions, multi-language support, auto-creation capabilities, and a complete REST API for headless applications.
 
 ## Table of Contents
 
@@ -14,30 +14,20 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - [📋 Requirements](#requirements)
 - [⚙️ Installation](#installation)
 - [🛠️ Creating Settings](#creating-settings)
-  - [Option 1: Using a Seeder (Recommended)](#option-1-using-a-seeder-recommended)
 - [⚡ Quick Start](#quick-start)
-  - [Basic Usage](#basic-usage)
-  - [Creating Settings](#creating-settings-1)
-  - [Option 2: Manual Creation in Code](#option-2-manual-creation-in-code)
-  - [Option 3: Controller Example](#option-3-controller-example)
 - [🌍 Adding Translations](#adding-translations)
-  - [Creating Settings with Translations](#creating-settings-with-translations)
-  - [Using Translations in Your Interface](#using-translations-in-your-interface)
+- [🚀 REST API](#rest-api)
 - [🎨 Multilingual Interface Examples](#multilingual-interface-examples)
 - [📚 API Reference](#api-reference)
-  - [Settings Facade](#settings-facade)
+- [🔄 Global Overrides vs Default Values](#global-overrides-vs-default-values)
 - [🔧 Data Types](#data-types)
 - [💡 Advanced Examples](#advanced-examples)
-  - [User Settings Interface](#user-settings-interface)
-  - [Admin Global Settings](#admin-global-settings)
-  - [Middleware Usage](#middleware-usage)
-  - [Creating Settings with Seeder](#creating-settings-with-seeder)
 - [🧪 Testing](#testing)
 - [🤝 Contributing](#contributing)
 - [🔒 Security](#security)
 - [📄 License](#license)
 
-## Features
+## 🚀 Features
 
 - 🔧 **Global and User-specific Settings** - Manage both application-wide and individual user preferences
 - 👥 **Role-based Permissions** - Control which settings are visible/editable by user roles
@@ -45,16 +35,17 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - 🚀 **Multiple Data Types** - Support for string, boolean, integer, JSON, and select options
 - ⚡ **Cache Support** - Built-in caching to reduce database queries
 - 🎨 **Clean API** - Simple and intuitive facade interface with auto-creation capabilities
-- 📦 **Easy Integration** - Seamless Laravel integration with service provider auto-discovery
 - 🔄 **Auto-Creation** - Automatically create settings on-the-fly with type detection
+- 🌐 **REST API** - Complete API for headless applications and JavaScript frameworks
+- 🛡️ **Flexible Authentication** - Support for token, Sanctum, and Passport authentication
+- 💾 **Database Agnostic** - Works with any Laravel-supported database
 
-## Requirements
+## 📋 Requirements
 
-- **PHP:** 8.1, 8.2, or 8.3
-- **Laravel:** 9.x, 10.x, 11.x, or 12.x
-- **Database:** MySQL, PostgreSQL, SQLite, or SQL Server
+- PHP 8.1 or higher
+- Laravel 10.0 or higher
 
-## Installation
+## ⚙️ Installation
 
 Install the package via Composer:
 
@@ -69,38 +60,57 @@ php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKit
 php artisan migrate
 ```
 
-Optionally, publish the configuration file:
+Optionally, publish the config file:
 
 ```bash
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="config"
 ```
 
-## Creating Settings
+## 🛠️ Creating Settings
 
-**Important:** Settings must be created as `Preference` records before they can be used. You have several options:
+### Using a Seeder (Recommended)
 
-### Option 1: Using a Seeder (Recommended)
+Create a seeder to define your settings:
 
-Create a seeder to define your application's settings:
+```php
+// database/seeders/SettingsSeeder.php
+use Metalinked\LaravelSettingsKit\Models\Preference;
 
-```bash
-php artisan make:seeder SettingsSeeder
+public function run(): void
+{
+    $settings = [
+        [
+            'key' => 'site_name',
+            'type' => 'string',
+            'default_value' => 'My Application',
+            'category' => 'general',
+        ],
+        [
+            'key' => 'allow_comments',
+            'type' => 'boolean',
+            'default_value' => '1',
+            'category' => 'content',
+        ],
+        [
+            'key' => 'max_upload_size',
+            'type' => 'integer',
+            'default_value' => '2048',
+            'category' => 'files',
+        ]
+    ];
+
+    foreach ($settings as $setting) {
+        Preference::firstOrCreate(['key' => $setting['key']], $setting);
+    }
+}
 ```
 
-See the complete example in `examples/SettingsSeeder.php` included with the package. It includes settings for notifications, privacy, appearance, and admin controls with full multilingual support.
-
-## Quick Start
+## ⚡ Quick Start
 
 ### Basic Usage
 
 ```php
 use Metalinked\LaravelSettingsKit\Facades\Settings;
-
-// Check if a setting exists
-if (Settings::has('allow_comments')) {
-    // Get the setting value
-    $value = Settings::get('allow_comments');
-}
 
 // Get a global setting (returns null if not found)
 $value = Settings::get('allow_comments');
@@ -127,82 +137,28 @@ $label = Settings::label('allow_comments');
 $description = Settings::description('allow_comments');
 ```
 
-### Creating Settings
+### Creating Settings with Auto-Detection
 
 ```php
-use Metalinked\LaravelSettingsKit\Models\Preference;
+// Automatically create settings with type detection
+Settings::setWithAutoCreate('maintenance_mode', false); // Creates boolean preference
+Settings::setWithAutoCreate('items_per_page', 20);      // Creates integer preference
+Settings::setWithAutoCreate('theme_config', ['dark' => true]); // Creates JSON preference
 
-// Create a global boolean setting
-Preference::create([
-    'key' => 'allow_comments',
-    'type' => 'boolean',
-    'default_value' => true,
-    'category' => 'general',
-    'role' => null, // Global setting
-]);
-
-// Create a user-specific setting for admins only
-Preference::create([
-    'key' => 'admin_notifications',
-    'type' => 'boolean',
-    'default_value' => true,
-    'category' => 'notifications',
-    'role' => 'admin',
-]);
+// Check if a setting exists before using
+if (Settings::has('feature_enabled')) {
+    $value = Settings::get('feature_enabled');
+}
 
 // Create setting only if it doesn't exist
 Settings::createIfNotExists('new_feature', [
     'type' => 'boolean',
-    'default_value' => false,
+    'default_value' => '0',
     'category' => 'features'
 ]);
 ```
 
-### Option 2: Manual Creation in Code
-
-```php
-use Metalinked\LaravelSettingsKit\Facades\Settings;
-
-// Create settings programmatically
-if (!Settings::has('maintenance_mode')) {
-    Settings::createIfNotExists('maintenance_mode', [
-        'type' => 'boolean',
-        'default_value' => false,
-        'category' => 'system'
-    ]);
-}
-
-// Or use auto-creation when setting values
-Settings::setWithAutoCreate('admin_notify_new_users', false);
-```
-
-### Option 3: Controller Example
-
-Here's a practical example for a settings controller:
-
-```php
-public function show()
-{
-    $settings = [
-        'maintenance_mode' => (bool) Settings::get('maintenance_mode', false),
-        'admin_notify_new_users' => (bool) Settings::get('admin_notify_new_users', false),
-    ];
-    return view('settings-test', compact('settings'));
-}
-
-public function save(Request $request)
-{
-    // Create preferences if they don't exist, then set values
-    Settings::setWithAutoCreate('maintenance_mode', $request->has('maintenance_mode'));
-    Settings::setWithAutoCreate('admin_notify_new_users', $request->has('admin_notify_new_users'));
-    
-    return redirect()->route('settings.test')->with('success', 'Configuration saved!');
-}
-```
-
-**💡 Pro Tip:** Check out `examples/SettingsControllerExample.php` for more advanced patterns including validation, error handling, and bulk initialization.
-
-### Adding Translations
+## 🌍 Adding Translations
 
 The package includes a powerful multilingual system that allows you to provide labels and descriptions for your settings in multiple languages:
 
@@ -214,62 +170,45 @@ $preference = Preference::where('key', 'allow_comments')->first();
 // Add English translation
 PreferenceContent::create([
     'preference_id' => $preference->id,
-    'lang' => 'en',
-    'title' => 'Allow Comments',
-    'text' => 'Enable or disable comments on posts',
+    'locale' => 'en',
+    'label' => 'Allow Comments',
+    'description' => 'Enable or disable comments on posts',
 ]);
 
-// Add Spanish translation
+// Add Catalan translation
 PreferenceContent::create([
     'preference_id' => $preference->id,
-    'lang' => 'es',
-    'title' => 'Permitir Comentarios',
-    'text' => 'Activar o desactivar comentarios en las publicaciones',
+    'locale' => 'ca',
+    'label' => 'Permetre Comentaris',
+    'description' => 'Activa o desactiva els comentaris a les publicacions',
 ]);
 ```
 
 ### Creating Settings with Translations
 
-You can create settings with translations in one step:
-
 ```php
-Settings::createWithTranslations('maintenance_mode', [
+// Create setting with multiple translations at once
+Settings::createWithTranslations('newsletter_enabled', [
     'type' => 'boolean',
-    'default_value' => '0',
-    'category' => 'system',
+    'default_value' => '1',
+    'category' => 'marketing'
 ], [
     'en' => [
-        'title' => 'Maintenance Mode',
-        'description' => 'Enable maintenance mode for system updates'
-    ],
-    'es' => [
-        'title' => 'Modo Mantenimiento', 
-        'description' => 'Activar modo de mantenimiento para actualizaciones del sistema'
+        'label' => 'Newsletter Subscription',
+        'description' => 'Enable newsletter signup form'
     ],
     'ca' => [
-        'title' => 'Mode Manteniment',
-        'description' => 'Activar el mode de manteniment per a actualitzacions del sistema'
+        'label' => 'Subscripció al Butlletí',
+        'description' => 'Activa el formulari de subscripció al butlletí'
+    ],
+    'es' => [
+        'label' => 'Suscripción al Boletín', 
+        'description' => 'Habilita el formulario de suscripción al boletín'
     ]
 ]);
 
-// Add translations to existing settings
-Settings::addTranslations('maintenance_mode', [
-    'fr' => [
-        'title' => 'Mode Maintenance',
-        'description' => 'Activer le mode maintenance pour les mises à jour système'
-    ]
-]);
-```
-
-### Using Translations in Your Interface
-
-```php
-// Get translated labels and descriptions
-$label = Settings::label('maintenance_mode', 'es'); // Returns: "Modo Mantenimiento"
-$description = Settings::description('maintenance_mode', 'es'); // Returns: "Activar modo de mantenimiento..."
-
-// Get all settings with translations for current locale
-$settingsWithTranslations = Settings::allWithTranslations(app()->getLocale());
+// Get all settings with translations for a specific locale
+$settings = Settings::allWithTranslations('ca');
 
 // This returns an array like:
 [
@@ -284,15 +223,103 @@ $settingsWithTranslations = Settings::allWithTranslations(app()->getLocale());
 ]
 ```
 
-## Multilingual Interface Examples
+## 🚀 REST API
+
+The package provides a complete REST API for managing settings, perfect for headless Laravel applications, mobile apps, or frontend JavaScript frameworks.
+
+### API Configuration
+
+Enable the API by adding these variables to your `.env` file:
+
+```env
+# Enable/disable the API
+SETTINGS_KIT_API_ENABLED=true
+
+# API route prefix (default: api/settings-kit)
+SETTINGS_KIT_API_PREFIX=api/settings-kit
+
+# Authentication mode: token, sanctum, or passport
+SETTINGS_KIT_API_AUTH=token
+
+# API token (required if using token auth)
+SETTINGS_KIT_API_TOKEN=your-secure-random-token-here
+```
+
+### API Authentication
+
+The API supports multiple authentication methods:
+
+**Token Authentication** (Simple):
+```bash
+curl -H "Authorization: Bearer your-secure-random-token-here" \
+     http://your-app.com/api/settings-kit
+```
+
+**Sanctum Authentication** (User-based):
+```env
+SETTINGS_KIT_API_AUTH=sanctum
+```
+```bash
+curl -H "Authorization: Bearer user-sanctum-token" \
+     http://your-app.com/api/settings-kit
+```
+
+**Passport Authentication** (OAuth2):
+```env
+SETTINGS_KIT_API_AUTH=passport
+```
+
+### API Endpoints
+
+- **GET** `/api/settings-kit` - Get all settings with optional filtering
+- **GET** `/api/settings-kit/{key}` - Get specific setting
+- **POST** `/api/settings-kit/{key}` - Create/update setting value
+- **PUT** `/api/settings-kit/{key}` - Update setting value
+- **DELETE** `/api/settings-kit/{key}` - Reset setting to default
+- **GET** `/api/settings-kit/categories` - Get available categories
+- **POST** `/api/settings-kit/preferences` - Create new preference
+
+**Query Parameters:**
+- `locale` - Language for translations (e.g., `ca`, `es`, `en`)
+- `user_id` - Get/set user-specific settings
+- `category` - Filter by category
+- `role` - Filter by role
+
+**Example Usage:**
+```bash
+# Get all settings with Catalan translations
+GET /api/settings-kit?locale=ca
+
+# Get user-specific settings
+GET /api/settings-kit?user_id=123&locale=en
+
+# Set global setting with auto-creation
+POST /api/settings-kit/maintenance_mode
+{
+    "value": true,
+    "auto_create": true
+}
+
+# Set user-specific setting
+POST /api/settings-kit/email_notifications
+{
+    "value": false,
+    "user_id": 123
+}
+```
+
+**📖 Complete API Documentation:** See `examples/API_USAGE.md` for detailed examples, error handling, and JavaScript integration examples.
+
+## 🎨 Multilingual Interface Examples
 
 The package includes practical examples for creating multilingual settings interfaces:
 
-- **`examples/MultilingualSettingsController.php`** - Complete controller with language switching
-- **`examples/views/admin-multilingual-settings.blade.php`** - Admin interface with language selector
-- **`examples/views/user-multilingual-settings.blade.php`** - User interface with live toggles and translations
+- **Admin Settings Panel** - `examples/admin-settings.blade.php`
+- **User Preferences** - `examples/user-settings.blade.php`
+- **Multilingual Admin Panel** - `examples/admin-multilingual-settings.blade.php`
+- **Controller Examples** - `examples/SettingsControllerExample.php`
 
-## API Reference
+## 📚 API Reference
 
 ### Settings Facade
 
@@ -300,7 +327,18 @@ The package includes practical examples for creating multilingual settings inter
 Get a setting value. Returns user-specific value if `$userId` is provided and exists, otherwise returns global default.
 
 #### `set(string $key, mixed $value, int $userId = null, bool $autoCreate = false)`
-Set a setting value. If `$userId` is provided, sets user-specific value, otherwise sets global default. Set `$autoCreate` to true to create the preference automatically if it doesn't exist.
+Set a setting value:
+- If `$userId` is provided: Sets user-specific value
+- If `$userId` is null: Creates a global override (preserves original default value)
+- Set `$autoCreate` to true to create the preference automatically if it doesn't exist
+
+```php
+// Global override (original default preserved)
+Settings::set('maintenance_mode', true); 
+
+// User-specific setting
+Settings::set('theme', 'dark', $userId);
+```
 
 #### `setWithAutoCreate(string $key, mixed $value, int $userId = null)`
 Set a setting value, creating the preference automatically if it doesn't exist.
@@ -317,11 +355,8 @@ Get the translated label for a setting.
 #### `description(string $key, string $locale = null)`
 Get the translated description for a setting.
 
-#### `all(string $role = null, int $userId = null)`
-Get all settings, optionally filtered by role and with user values.
-
-#### `allWithTranslations(string $locale = null, string $role = null, int $userId = null)`
-Get all settings with their translated labels and descriptions for a specific locale.
+#### `create(array $data)`
+Create a new preference.
 
 #### `createIfNotExists(string $key, array $data)`
 Create a preference only if it doesn't already exist.
@@ -333,9 +368,55 @@ Create a preference with translations in multiple languages.
 Add or update translations for an existing preference.
 
 #### `forget(string $key, int $userId = null)`
-Remove a setting value (resets to default).
+Reset a setting to its original default value:
+- For **user settings**: Removes the user's custom value, reverting to the global value
+- For **global settings**: Removes any global override, reverting to the original default value defined when the preference was created
 
-## Data Types
+```php
+// Example: Reset user's custom theme back to global default
+Settings::forget('theme', $userId);
+
+// Example: Reset global override back to original default
+Settings::create(['key' => 'site_name', 'default_value' => 'My App']); // Original default
+Settings::set('site_name', 'Custom Name'); // Global override 
+Settings::forget('site_name'); // Resets back to 'My App'
+```
+
+## 🔄 Global Overrides vs Default Values
+
+The package uses a sophisticated system that separates **original default values** from **global overrides**:
+
+### How it Works
+- **Default Value**: The original value defined when creating a preference (preserved forever)
+- **Global Override**: A temporary global value that can be reset back to the original default
+- **User Value**: User-specific values that override both global and default values
+
+### Value Priority (highest to lowest)
+1. **User-specific value** (if user ID provided and value exists)
+2. **Global override** (if exists)  
+3. **Original default value** (fallback)
+
+### Practical Example
+```php
+// 1. Create preference with original default
+Settings::create(['key' => 'theme', 'default_value' => 'light']);
+
+// 2. Set global override
+Settings::set('theme', 'dark'); // Global override, 'light' still preserved
+
+// 3. User can have personal setting
+Settings::set('theme', 'custom', $userId); // User-specific value
+
+// 4. Reset behaviors:
+Settings::forget('theme', $userId); // User gets global override ('dark')
+Settings::forget('theme');         // Global resets to original default ('light')
+```
+
+This system ensures you never lose your original configuration while allowing flexible overrides at both global and user levels.
+
+> **⚠️ Important:** This architecture change means that `Settings::set()` without a user ID now creates a global override instead of modifying the original default value. This ensures better data integrity and allows proper reset functionality.
+
+## 🔧 Data Types
 
 The package supports the following data types:
 
@@ -345,7 +426,7 @@ The package supports the following data types:
 - `json` - JSON objects/arrays
 - `select` - Predefined options (stored as JSON in options field)
 
-## Advanced Examples
+## 💡 Advanced Examples
 
 ### User Settings Interface
 
@@ -353,33 +434,26 @@ The package supports the following data types:
 // Controller for user settings
 class UserSettingsController extends Controller 
 {
-    public function show(Request $request)
+    public function index()
     {
-        $user = $request->user();
-        $categories = Settings::getCategories();
-        $userSettings = [];
-        
-        foreach ($categories as $category) {
-            $categorySettings = Settings::getByCategory($category, $user->id);
-            if (!empty($categorySettings)) {
-                $userSettings[$category] = $categorySettings;
-            }
-        }
-        
-        return view('settings.user', compact('userSettings'));
+        $userId = auth()->id();
+        $settings = [
+            'email_notifications' => Settings::get('email_notifications', $userId),
+            'theme' => Settings::get('theme', $userId),
+            'language' => Settings::get('language', $userId),
+        ];
+
+        return view('settings.user', compact('settings'));
     }
-    
+
     public function update(Request $request)
     {
-        $user = $request->user();
-        $settings = $request->get('settings', []);
+        $userId = auth()->id();
         
-        foreach ($settings as $key => $value) {
-            if (Settings::exists($key)) {
-                Settings::set($key, $value, $user->id);
-            }
+        foreach ($request->only(['email_notifications', 'theme', 'language']) as $key => $value) {
+            Settings::set($key, $value, $userId);
         }
-        
+
         return redirect()->back()->with('success', 'Settings updated!');
     }
 }
@@ -388,122 +462,47 @@ class UserSettingsController extends Controller
 ### Admin Global Settings
 
 ```php
-// Admin can modify global settings
+// Controller for admin global settings
 class AdminSettingsController extends Controller
 {
-    public function updateGlobal(Request $request)
+    public function update(Request $request)
     {
-        if (!$request->user()->isAdmin()) {
-            abort(403);
-        }
+        // Set global overrides (preserves original defaults)
+        Settings::set('maintenance_mode', $request->has('maintenance_mode'));
+        Settings::set('max_users', $request->input('max_users', 1000));
         
-        $settings = $request->get('global_settings', []);
-        
-        foreach ($settings as $key => $value) {
-            Settings::set($key, $value); // No user_id = global setting
-        }
+        // Auto-create settings that might not exist
+        Settings::setWithAutoCreate('new_feature_flag', $request->has('new_feature'));
         
         return redirect()->back()->with('success', 'Global settings updated!');
     }
-}
-```
 
-### Middleware Usage
-
-```php
-// Check if a feature is enabled
-class CheckFeatureEnabled
-{
-    public function handle($request, Closure $next, $feature)
+    public function reset($key)
     {
-        if (!Settings::isEnabled($feature)) {
-            abort(404, 'Feature disabled');
-        }
+        // Reset to original default value
+        Settings::forget($key);
         
-        return $next($request);
+        return redirect()->back()->with('success', "Setting '{$key}' reset to default!");
     }
 }
-
-// Usage in routes
-Route::get('/contact', [ContactController::class, 'show'])
-     ->middleware('feature:contact_form_enabled');
 ```
 
-### Creating Settings with Seeder
+## 🧪 Testing
 
-```php
-use Metalinked\LaravelSettingsKit\Models\Preference;
-use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
-
-// Create a setting with translations
-$preference = Preference::create([
-    'key' => 'email_notifications',
-    'type' => 'boolean',
-    'default_value' => '1',
-    'category' => 'notifications',
-    'role' => null,
-]);
-
-// Add translations
-PreferenceContent::create([
-    'preference_id' => $preference->id,
-    'lang' => 'en',
-    'title' => 'Email Notifications',
-    'text' => 'Receive important notifications via email',
-]);
-
-PreferenceContent::create([
-    'preference_id' => $preference->id,
-    'lang' => 'es',
-    'title' => 'Notificaciones por Email',
-    'text' => 'Recibir notificaciones importantes por correo',
-]);
-
-// Or use the Settings facade for a cleaner approach:
-Settings::createWithTranslations('email_notifications', [
-    'type' => 'boolean',
-    'default_value' => '1',
-    'category' => 'notifications',
-], [
-    'en' => ['title' => 'Email Notifications', 'description' => 'Receive important notifications via email'],
-    'es' => ['title' => 'Notificaciones por Email', 'description' => 'Recibir notificaciones importantes por correo'],
-    'ca' => ['title' => 'Notificacions per Email', 'description' => 'Rebre notificacions importants per correu electrònic']
-]);
-```
-
-The package comes with sensible defaults, but you can customize behavior by publishing the config file:
-
-```php
-return [
-    'cache' => [
-        'enabled' => true,
-        'ttl' => 3600, // 1 hour
-        'prefix' => 'settings_kit',
-    ],
-    'tables' => [
-        'preferences' => 'preferences',
-        'preference_contents' => 'preference_contents',
-        'user_preferences' => 'user_preferences',
-    ],
-];
-```
-
-## Testing
-
-Run the tests with:
+Run the test suite:
 
 ```bash
 composer test
 ```
 
-## Contributing
+## 🤝 Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-## Security
+## 🔒 Security
 
-If you discover any security-related issues, please email info@metalinked.net instead of using the issue tracker.
+If you discover any security related issues, please email security@metalinked.com instead of using the issue tracker.
 
-## License
+## 📄 License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

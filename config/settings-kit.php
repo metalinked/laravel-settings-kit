@@ -58,4 +58,20 @@ return [
     |
     */
     'user_model' => 'App\Models\User',
+
+    /*
+    |--------------------------------------------------------------------------
+    | API Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the REST API endpoints.
+    |
+    */
+    'api' => [
+        'enabled' => env('SETTINGS_KIT_API_ENABLED', false),
+        'prefix' => env('SETTINGS_KIT_API_PREFIX', 'api/settings-kit'),
+        'auth_mode' => env('SETTINGS_KIT_API_AUTH', 'token'), // 'token', 'sanctum', 'passport'
+        'token' => env('SETTINGS_KIT_API_TOKEN'),
+        'middleware' => ['api'], // Base middleware for all API routes
+    ],
 ];

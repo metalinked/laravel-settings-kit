@@ -87,20 +87,25 @@ class Preference extends Model {
     /**
      * Get the user-specific value for this preference.
      */
-    public function getUserValue(int $userId): mixed {
+    public function getUserValue(?int $userId): mixed {
         $userPreference = $this->userPreferences()->where('user_id', $userId)->first();
 
         if ($userPreference) {
             return $this->castValue($userPreference->value);
         }
 
-        return $this->getDefaultValue();
+        // Only return default if this is not a global override lookup (userId === null)
+        if ($userId !== null) {
+            return $this->getDefaultValue();
+        }
+
+        return null; // No global override found
     }
 
     /**
      * Set the user-specific value for this preference.
      */
-    public function setUserValue(int $userId, mixed $value): UserPreference {
+    public function setUserValue(?int $userId, mixed $value): UserPreference {
         /** @var UserPreference $userPreference */
         $userPreference = $this->userPreferences()->updateOrCreate(
             ['user_id' => $userId],

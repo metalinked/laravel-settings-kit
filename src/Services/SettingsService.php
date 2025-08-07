@@ -66,14 +66,8 @@ class SettingsService {
         }
 
         if ($userId === null) {
-            // Set global default value
-            $preparedValue = match ($preference->type) {
-                'boolean' => $value ? '1' : '0',
-                'integer' => (string) $value,
-                'json' => json_encode($value),
-                default => (string) $value,
-            };
-            $preference->update(['default_value' => $preparedValue]);
+            // Set global override value (not changing the original default)
+            $preference->setUserValue(null, $value);
         } else {
             // Set user-specific value
             $preference->setUserValue($userId, $value);
@@ -169,11 +163,12 @@ class SettingsService {
      */
     public function forget(string $key, int $userId = null): void {
         if ($userId === null) {
-            // Reset global default to null or remove preference entirely
-            $preference = $this->findPreference($key);
-            if ($preference) {
-                $preference->update(['default_value' => null]);
-            }
+            // For global settings, we need to restore to the original default
+            // We don't modify the preference's default_value, we just remove any global override
+            // This means we need to delete any global user_preferences with user_id = null
+            UserPreference::whereHas('preference', function ($query) use ($key) {
+                $query->where('key', $key);
+            })->whereNull('user_id')->delete();
         } else {
             // Remove user-specific value
             UserPreference::whereHas('preference', function ($query) use ($key) {
@@ -363,6 +358,13 @@ class SettingsService {
             return $preference->getUserValue($userId);
         }
 
+        // For global values, first check if there's a global override (user_id = null)
+        $globalOverride = $preference->getUserValue(null);
+        if ($globalOverride !== null) {
+            return $globalOverride;
+        }
+
+        // Otherwise return the original default value
         return $preference->getDefaultValue();
     }
 
