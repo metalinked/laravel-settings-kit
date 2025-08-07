@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.3...v1.0.4) (2025-08-07)
+
+
+### Bug Fixes
+
+* remove exposed Laravel APP_KEY from phpunit.xml for security ([249618a](https://github.com/metalinked/laravel-settings-kit/commit/249618ae25491742c20c13ae794e2087357f382b))
+
 ## [1.0.3](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.2...v1.0.3) (2025-08-06)
 
 
