@@ -35,11 +35,34 @@ class SettingsService {
     /**
      * Set a setting value.
      */
-    public function set(string $key, mixed $value, int $userId = null): void {
+    public function set(string $key, mixed $value, int $userId = null, bool $autoCreate = false): void {
         $preference = $this->findPreference($key);
 
         if (!$preference) {
-            throw new \InvalidArgumentException("Preference with key '{$key}' not found.");
+            if ($autoCreate) {
+                // Auto-create a basic preference based on value type
+                $type = match (true) {
+                    is_bool($value) => 'boolean',
+                    is_int($value) => 'integer',
+                    is_array($value) => 'json',
+                    default => 'string'
+                };
+
+                $preference = $this->create([
+                    'key' => $key,
+                    'type' => $type,
+                    'default_value' => match ($type) {
+                        'boolean' => $value ? '1' : '0',
+                        'integer' => (string) $value,
+                        'json' => json_encode($value),
+                        default => (string) $value,
+                    },
+                    'category' => 'general',
+                    'role' => null,
+                ]);
+            } else {
+                throw new \InvalidArgumentException("Preference with key '{$key}' not found. Use Settings::createIfNotExists() or pass autoCreate=true to create it automatically.");
+            }
         }
 
         if ($userId === null) {
@@ -58,6 +81,13 @@ class SettingsService {
 
         // Clear cache
         $this->clearCache($key, $userId);
+    }
+
+    /**
+     * Set a setting value, creating the preference if it doesn't exist.
+     */
+    public function setWithAutoCreate(string $key, mixed $value, int $userId = null): void {
+        $this->set($key, $value, $userId, true);
     }
 
     /**
@@ -204,10 +234,119 @@ class SettingsService {
     }
 
     /**
+     * Alias for exists() method for better readability.
+     */
+    public function has(string $key): bool {
+        return $this->exists($key);
+    }
+
+    /**
      * Create a new preference.
      */
     public function create(array $data): Preference {
         return Preference::create($data);
+    }
+
+    /**
+     * Create a preference only if it doesn't exist.
+     */
+    public function createIfNotExists(string $key, array $data): ?Preference {
+        if ($this->exists($key)) {
+            return null;
+        }
+
+        return $this->create(array_merge(['key' => $key], $data));
+    }
+
+    /**
+     * Create a preference with translations if it doesn't exist.
+     */
+    public function createWithTranslations(string $key, array $preferenceData, array $translations = []): ?Preference {
+        if ($this->exists($key)) {
+            return null;
+        }
+
+        $preference = $this->create(array_merge(['key' => $key], $preferenceData));
+
+        // Add translations if provided
+        foreach ($translations as $locale => $content) {
+            if (is_array($content) && isset($content['title'])) {
+                \Metalinked\LaravelSettingsKit\Models\PreferenceContent::create([
+                    'preference_id' => $preference->id,
+                    'lang' => $locale,
+                    'title' => $content['title'],
+                    'text' => $content['description'] ?? $content['text'] ?? '',
+                ]);
+            }
+        }
+
+        return $preference;
+    }
+
+    /**
+     * Add or update translations for a preference.
+     */
+    public function addTranslations(string $key, array $translations): void {
+        $preference = $this->findPreference($key);
+        
+        if (!$preference) {
+            throw new \InvalidArgumentException("Preference with key '{$key}' not found.");
+        }
+
+        foreach ($translations as $locale => $content) {
+            if (is_array($content) && isset($content['title'])) {
+                \Metalinked\LaravelSettingsKit\Models\PreferenceContent::updateOrCreate(
+                    [
+                        'preference_id' => $preference->id,
+                        'lang' => $locale,
+                    ],
+                    [
+                        'title' => $content['title'],
+                        'text' => $content['description'] ?? $content['text'] ?? '',
+                    ]
+                );
+            }
+        }
+    }
+
+    /**
+     * Get all settings with their labels and descriptions for a specific locale.
+     */
+    public function allWithTranslations(string $locale = null, string $role = null, int $userId = null): array {
+        $query = Preference::query();
+
+        if ($role !== null) {
+            $query->where(function ($q) use ($role) {
+                $q->where('role', $role)->orWhereNull('role');
+            });
+        } else {
+            $query->whereNull('role');
+        }
+
+        $preferences = $query->with(['contents', 'userPreferences' => function ($q) use ($userId) {
+            if ($userId) {
+                $q->where('user_id', $userId);
+            }
+        }])->get();
+
+        $result = [];
+
+        foreach ($preferences as $preference) {
+            $value = $userId ? $preference->getUserValue($userId) : $preference->getDefaultValue();
+
+            $result[$preference->key] = [
+                'value' => $value,
+                'type' => $preference->type,
+                'category' => $preference->category,
+                'required' => $preference->required,
+                'options' => $preference->options,
+                'label' => $preference->getLabel($locale),
+                'description' => $preference->getDescription($locale),
+                'key' => $preference->key,
+            ];
+        }
+
+        return $result;
     }
 
     /**

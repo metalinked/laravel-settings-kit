@@ -20,6 +20,154 @@ class SettingsServiceTest extends TestCase {
         $this->assertEquals('test_setting', $preference->key);
         $this->assertEquals('boolean', $preference->type);
         $this->assertTrue(Settings::exists('test_setting'));
+        $this->assertTrue(Settings::has('test_setting')); // Test alias
+    }
+
+    public function test_has_method_works() {
+        $this->assertFalse(Settings::has('nonexistent_setting'));
+        
+        Settings::create([
+            'key' => 'existing_setting',
+            'type' => 'string',
+            'default_value' => 'test',
+        ]);
+        
+        $this->assertTrue(Settings::has('existing_setting'));
+    }
+
+    public function test_create_if_not_exists() {
+        // Should create since it doesn't exist
+        $preference = Settings::createIfNotExists('new_setting', [
+            'type' => 'boolean',
+            'default_value' => true,
+            'category' => 'test'
+        ]);
+        
+        $this->assertInstanceOf(Preference::class, $preference);
+        $this->assertEquals('new_setting', $preference->key);
+        
+        // Should return null since it already exists
+        $result = Settings::createIfNotExists('new_setting', [
+            'type' => 'string',
+            'default_value' => 'different'
+        ]);
+        
+        $this->assertNull($result);
+    }
+
+    public function test_set_with_auto_create() {
+        $this->assertFalse(Settings::has('auto_created_setting'));
+        
+        // This should create the preference automatically
+        Settings::setWithAutoCreate('auto_created_setting', true);
+        
+        $this->assertTrue(Settings::has('auto_created_setting'));
+        $this->assertTrue(Settings::get('auto_created_setting'));
+    }
+
+    public function test_set_with_auto_create_different_types() {
+        // Boolean
+        Settings::setWithAutoCreate('bool_setting', false);
+        $this->assertEquals('boolean', Preference::where('key', 'bool_setting')->first()->type);
+        
+        // Integer
+        Settings::setWithAutoCreate('int_setting', 42);
+        $this->assertEquals('integer', Preference::where('key', 'int_setting')->first()->type);
+        
+        // Array (JSON)
+        Settings::setWithAutoCreate('array_setting', ['key' => 'value']);
+        $this->assertEquals('json', Preference::where('key', 'array_setting')->first()->type);
+        
+        // String
+        Settings::setWithAutoCreate('string_setting', 'test');
+        $this->assertEquals('string', Preference::where('key', 'string_setting')->first()->type);
+    }
+
+    public function test_set_throws_exception_when_preference_not_found() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Preference with key 'nonexistent' not found");
+        
+        Settings::set('nonexistent', 'value');
+    }
+
+    public function test_set_with_auto_create_parameter() {
+        $this->assertFalse(Settings::has('param_test'));
+        
+        // Should create when autoCreate is true
+        Settings::set('param_test', 'value', null, true);
+        
+        $this->assertTrue(Settings::has('param_test'));
+        $this->assertEquals('value', Settings::get('param_test'));
+    }
+
+    public function test_create_with_translations() {
+        $preference = Settings::createWithTranslations('multilingual_setting', [
+            'type' => 'string',
+            'default_value' => 'test',
+            'category' => 'test'
+        ], [
+            'en' => ['title' => 'English Title', 'description' => 'English description'],
+            'es' => ['title' => 'Título Español', 'description' => 'Descripción en español'],
+            'ca' => ['title' => 'Títol Català', 'description' => 'Descripció en català']
+        ]);
+
+        $this->assertInstanceOf(\Metalinked\LaravelSettingsKit\Models\Preference::class, $preference);
+        $this->assertEquals('multilingual_setting', $preference->key);
+        
+        // Check translations were created
+        $this->assertEquals('English Title', Settings::label('multilingual_setting', 'en'));
+        $this->assertEquals('Título Español', Settings::label('multilingual_setting', 'es'));
+        $this->assertEquals('Títol Català', Settings::label('multilingual_setting', 'ca'));
+        
+        $this->assertEquals('English description', Settings::description('multilingual_setting', 'en'));
+        $this->assertEquals('Descripción en español', Settings::description('multilingual_setting', 'es'));
+        $this->assertEquals('Descripció en català', Settings::description('multilingual_setting', 'ca'));
+    }
+
+    public function test_add_translations_to_existing_setting() {
+        // Create setting without translations
+        Settings::create([
+            'key' => 'existing_setting',
+            'type' => 'string',
+            'default_value' => 'test'
+        ]);
+
+        // Add translations
+        Settings::addTranslations('existing_setting', [
+            'en' => ['title' => 'Added English', 'description' => 'Added English description'],
+            'fr' => ['title' => 'Titre Français', 'description' => 'Description française']
+        ]);
+
+        $this->assertEquals('Added English', Settings::label('existing_setting', 'en'));
+        $this->assertEquals('Titre Français', Settings::label('existing_setting', 'fr'));
+        $this->assertEquals('Added English description', Settings::description('existing_setting', 'en'));
+    }
+
+    public function test_all_with_translations() {
+        // Create a setting with translations
+        Settings::createWithTranslations('test_multilingual', [
+            'type' => 'boolean',
+            'default_value' => '1',
+            'category' => 'test'
+        ], [
+            'en' => ['title' => 'Test Setting', 'description' => 'Test description']
+        ]);
+
+        $settings = Settings::allWithTranslations('en');
+        
+        $this->assertArrayHasKey('test_multilingual', $settings);
+        $this->assertEquals('Test Setting', $settings['test_multilingual']['label']);
+        $this->assertEquals('Test description', $settings['test_multilingual']['description']);
+        $this->assertEquals('test_multilingual', $settings['test_multilingual']['key']);
+    }
+
+    public function test_add_translations_to_nonexistent_setting_throws_exception() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Preference with key 'nonexistent' not found");
+        
+        Settings::addTranslations('nonexistent', [
+            'en' => ['title' => 'Title', 'description' => 'Description']
+        ]);
     }
 
     public function test_can_get_global_setting() {

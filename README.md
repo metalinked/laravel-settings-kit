@@ -8,15 +8,45 @@
 
 A comprehensive Laravel package for managing global and user-specific settings with role-based permissions and multi-language support.
 
+## Table of Contents
+
+- [🚀 Features](#features)
+- [📋 Requirements](#requirements)
+- [⚙️ Installation](#installation)
+- [🛠️ Creating Settings](#creating-settings)
+  - [Option 1: Using a Seeder (Recommended)](#option-1-using-a-seeder-recommended)
+- [⚡ Quick Start](#quick-start)
+  - [Basic Usage](#basic-usage)
+  - [Creating Settings](#creating-settings-1)
+  - [Option 2: Manual Creation in Code](#option-2-manual-creation-in-code)
+  - [Option 3: Controller Example](#option-3-controller-example)
+- [🌍 Adding Translations](#adding-translations)
+  - [Creating Settings with Translations](#creating-settings-with-translations)
+  - [Using Translations in Your Interface](#using-translations-in-your-interface)
+- [🎨 Multilingual Interface Examples](#multilingual-interface-examples)
+- [📚 API Reference](#api-reference)
+  - [Settings Facade](#settings-facade)
+- [🔧 Data Types](#data-types)
+- [💡 Advanced Examples](#advanced-examples)
+  - [User Settings Interface](#user-settings-interface)
+  - [Admin Global Settings](#admin-global-settings)
+  - [Middleware Usage](#middleware-usage)
+  - [Creating Settings with Seeder](#creating-settings-with-seeder)
+- [🧪 Testing](#testing)
+- [🤝 Contributing](#contributing)
+- [🔒 Security](#security)
+- [📄 License](#license)
+
 ## Features
 
 - 🔧 **Global and User-specific Settings** - Manage both application-wide and individual user preferences
 - 👥 **Role-based Permissions** - Control which settings are visible/editable by user roles
-- 🌍 **Multi-language Support** - Automatic translation of setting labels and descriptions
+- 🌍 **Multi-language Support** - Full multilingual support with automatic fallbacks and translation management
 - 🚀 **Multiple Data Types** - Support for string, boolean, integer, JSON, and select options
 - ⚡ **Cache Support** - Built-in caching to reduce database queries
-- 🎨 **Clean API** - Simple and intuitive facade interface
+- 🎨 **Clean API** - Simple and intuitive facade interface with auto-creation capabilities
 - 📦 **Easy Integration** - Seamless Laravel integration with service provider auto-discovery
+- 🔄 **Auto-Creation** - Automatically create settings on-the-fly with type detection
 
 ## Requirements
 
@@ -45,6 +75,20 @@ Optionally, publish the configuration file:
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="config"
 ```
 
+## Creating Settings
+
+**Important:** Settings must be created as `Preference` records before they can be used. You have several options:
+
+### Option 1: Using a Seeder (Recommended)
+
+Create a seeder to define your application's settings:
+
+```bash
+php artisan make:seeder SettingsSeeder
+```
+
+See the complete example in `examples/SettingsSeeder.php` included with the package. It includes settings for notifications, privacy, appearance, and admin controls with full multilingual support.
+
 ## Quick Start
 
 ### Basic Usage
@@ -52,17 +96,26 @@ php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKit
 ```php
 use Metalinked\LaravelSettingsKit\Facades\Settings;
 
-// Get a global setting
+// Check if a setting exists
+if (Settings::has('allow_comments')) {
+    // Get the setting value
+    $value = Settings::get('allow_comments');
+}
+
+// Get a global setting (returns null if not found)
 $value = Settings::get('allow_comments');
 
 // Get a user-specific setting
 $value = Settings::get('email_notifications', $userId);
 
-// Set a global setting
+// Set a global setting (throws exception if preference doesn't exist)
 Settings::set('allow_comments', true);
 
 // Set a user-specific setting
 Settings::set('email_notifications', false, $userId);
+
+// Set a setting with auto-creation (creates preference if it doesn't exist)
+Settings::setWithAutoCreate('new_feature_enabled', true);
 
 // Check if a setting is enabled (boolean)
 if (Settings::isEnabled('maintenance_mode')) {
@@ -96,9 +149,62 @@ Preference::create([
     'category' => 'notifications',
     'role' => 'admin',
 ]);
+
+// Create setting only if it doesn't exist
+Settings::createIfNotExists('new_feature', [
+    'type' => 'boolean',
+    'default_value' => false,
+    'category' => 'features'
+]);
 ```
 
+### Option 2: Manual Creation in Code
+
+```php
+use Metalinked\LaravelSettingsKit\Facades\Settings;
+
+// Create settings programmatically
+if (!Settings::has('maintenance_mode')) {
+    Settings::createIfNotExists('maintenance_mode', [
+        'type' => 'boolean',
+        'default_value' => false,
+        'category' => 'system'
+    ]);
+}
+
+// Or use auto-creation when setting values
+Settings::setWithAutoCreate('admin_notify_new_users', false);
+```
+
+### Option 3: Controller Example
+
+Here's a practical example for a settings controller:
+
+```php
+public function show()
+{
+    $settings = [
+        'maintenance_mode' => (bool) Settings::get('maintenance_mode', false),
+        'admin_notify_new_users' => (bool) Settings::get('admin_notify_new_users', false),
+    ];
+    return view('settings-test', compact('settings'));
+}
+
+public function save(Request $request)
+{
+    // Create preferences if they don't exist, then set values
+    Settings::setWithAutoCreate('maintenance_mode', $request->has('maintenance_mode'));
+    Settings::setWithAutoCreate('admin_notify_new_users', $request->has('admin_notify_new_users'));
+    
+    return redirect()->route('settings.test')->with('success', 'Configuration saved!');
+}
+```
+
+**💡 Pro Tip:** Check out `examples/SettingsControllerExample.php` for more advanced patterns including validation, error handling, and bulk initialization.
+
 ### Adding Translations
+
+The package includes a powerful multilingual system that allows you to provide labels and descriptions for your settings in multiple languages:
 
 ```php
 use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
@@ -122,6 +228,70 @@ PreferenceContent::create([
 ]);
 ```
 
+### Creating Settings with Translations
+
+You can create settings with translations in one step:
+
+```php
+Settings::createWithTranslations('maintenance_mode', [
+    'type' => 'boolean',
+    'default_value' => '0',
+    'category' => 'system',
+], [
+    'en' => [
+        'title' => 'Maintenance Mode',
+        'description' => 'Enable maintenance mode for system updates'
+    ],
+    'es' => [
+        'title' => 'Modo Mantenimiento', 
+        'description' => 'Activar modo de mantenimiento para actualizaciones del sistema'
+    ],
+    'ca' => [
+        'title' => 'Mode Manteniment',
+        'description' => 'Activar el mode de manteniment per a actualitzacions del sistema'
+    ]
+]);
+
+// Add translations to existing settings
+Settings::addTranslations('maintenance_mode', [
+    'fr' => [
+        'title' => 'Mode Maintenance',
+        'description' => 'Activer le mode maintenance pour les mises à jour système'
+    ]
+]);
+```
+
+### Using Translations in Your Interface
+
+```php
+// Get translated labels and descriptions
+$label = Settings::label('maintenance_mode', 'es'); // Returns: "Modo Mantenimiento"
+$description = Settings::description('maintenance_mode', 'es'); // Returns: "Activar modo de mantenimiento..."
+
+// Get all settings with translations for current locale
+$settingsWithTranslations = Settings::allWithTranslations(app()->getLocale());
+
+// This returns an array like:
+[
+    'maintenance_mode' => [
+        'value' => false,
+        'type' => 'boolean',
+        'category' => 'system',
+        'label' => 'Mode Manteniment',
+        'description' => 'Activar el mode de manteniment...',
+        'key' => 'maintenance_mode'
+    ]
+]
+```
+
+## Multilingual Interface Examples
+
+The package includes practical examples for creating multilingual settings interfaces:
+
+- **`examples/MultilingualSettingsController.php`** - Complete controller with language switching
+- **`examples/views/admin-multilingual-settings.blade.php`** - Admin interface with language selector
+- **`examples/views/user-multilingual-settings.blade.php`** - User interface with live toggles and translations
+
 ## API Reference
 
 ### Settings Facade
@@ -129,8 +299,14 @@ PreferenceContent::create([
 #### `get(string $key, int $userId = null)`
 Get a setting value. Returns user-specific value if `$userId` is provided and exists, otherwise returns global default.
 
-#### `set(string $key, mixed $value, int $userId = null)`
-Set a setting value. If `$userId` is provided, sets user-specific value, otherwise sets global default.
+#### `set(string $key, mixed $value, int $userId = null, bool $autoCreate = false)`
+Set a setting value. If `$userId` is provided, sets user-specific value, otherwise sets global default. Set `$autoCreate` to true to create the preference automatically if it doesn't exist.
+
+#### `setWithAutoCreate(string $key, mixed $value, int $userId = null)`
+Set a setting value, creating the preference automatically if it doesn't exist.
+
+#### `has(string $key)` / `exists(string $key)`
+Check if a preference exists in the database.
 
 #### `isEnabled(string $key, int $userId = null)`
 Check if a boolean setting is enabled.
@@ -143,6 +319,18 @@ Get the translated description for a setting.
 
 #### `all(string $role = null, int $userId = null)`
 Get all settings, optionally filtered by role and with user values.
+
+#### `allWithTranslations(string $locale = null, string $role = null, int $userId = null)`
+Get all settings with their translated labels and descriptions for a specific locale.
+
+#### `createIfNotExists(string $key, array $data)`
+Create a preference only if it doesn't already exist.
+
+#### `createWithTranslations(string $key, array $preferenceData, array $translations = [])`
+Create a preference with translations in multiple languages.
+
+#### `addTranslations(string $key, array $translations)`
+Add or update translations for an existing preference.
 
 #### `forget(string $key, int $userId = null)`
 Remove a setting value (resets to default).
@@ -269,6 +457,17 @@ PreferenceContent::create([
     'lang' => 'es',
     'title' => 'Notificaciones por Email',
     'text' => 'Recibir notificaciones importantes por correo',
+]);
+
+// Or use the Settings facade for a cleaner approach:
+Settings::createWithTranslations('email_notifications', [
+    'type' => 'boolean',
+    'default_value' => '1',
+    'category' => 'notifications',
+], [
+    'en' => ['title' => 'Email Notifications', 'description' => 'Receive important notifications via email'],
+    'es' => ['title' => 'Notificaciones por Email', 'description' => 'Recibir notificaciones importantes por correo'],
+    'ca' => ['title' => 'Notificacions per Email', 'description' => 'Rebre notificacions importants per correu electrònic']
 ]);
 ```
 
