@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.1.0...v1.2.0) (2025-08-07)
+
+
+### Features
+
+* enhance settings management with auto-creation, translations, and improved UX ([6cdaa17](https://github.com/metalinked/laravel-settings-kit/commit/6cdaa175e34660893cba32c11fe67e36d3bdd771))
+
 ## [1.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.4...v1.1.0) (2025-08-07)
 
 
