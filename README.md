@@ -10,22 +10,22 @@ A comprehensive Laravel package for managing global and user-specific settings w
 
 ## Table of Contents
 
-- [🚀 Features](#features)
-- [📋 Requirements](#requirements)
-- [⚙️ Installation](#installation)
-- [🛠️ Creating Settings](#creating-settings)
-- [⚡ Quick Start](#quick-start)
-- [🌍 Adding Translations](#adding-translations)
-- [🚀 REST API](#rest-api)
-- [🎨 Multilingual Interface Examples](#multilingual-interface-examples)
-- [📚 API Reference](#api-reference)
-- [🔄 Global Overrides vs Default Values](#global-overrides-vs-default-values)
-- [🔧 Data Types](#data-types)
-- [💡 Advanced Examples](#advanced-examples)
-- [🧪 Testing](#testing)
-- [🤝 Contributing](#contributing)
-- [🔒 Security](#security)
-- [📄 License](#license)
+- [🚀 Features](#user-content--features)
+- [📋 Requirements](#user-content--requirements)
+- [⚙️ Installation](#user-content--installation)
+- [🛠️ Creating Settings](#user-content--creating-settings)
+- [⚡ Quick Start](#user-content--quick-start)
+- [🌍 Adding Translations](#user-content--adding-translations)
+- [🚀 REST API](#user-content--rest-api)
+- [🎨 Multilingual Interface Examples](#user-content--multilingual-interface-examples)
+- [📚 API Reference](#user-content--api-reference)
+- [🔄 Global Overrides vs Default Values](#user-content--global-overrides-vs-default-values)
+- [🔧 Data Types](#user-content--data-types)
+- [💡 Advanced Examples](#user-content--advanced-examples)
+- [🧪 Testing](#user-content--testing)
+- [🤝 Contributing](#user-content--contributing)
+- [🔒 Security](#user-content--security)
+- [📄 License](#user-content--license)
 
 ## 🚀 Features
 
