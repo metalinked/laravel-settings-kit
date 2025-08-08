@@ -1,23 +1,6 @@
-# Laravel ## Table of Contents
+# Laravel Settings Kit
 
-- [Features](#features)
-- [Requirements](#requirements)
-- [Installation](#installation)
-- [Creating Settings](#creating-settings)
-- [Quick Start](#quick-start)
-- [Adding Translations](#adding-translations)
-- [REST API](#rest-api)
-- [Multilingual Interface Examples](#multilingual-interface-examples)
-- [API Reference](#api-reference)
-- [Global Overrides vs Default Values](#global-overrides-vs-default-values)
-- [Data Types](#data-types)
-- [Advanced Examples](#advanced-examples)
-- [Testing](#testing)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
-
-## Featuresests](https://img.shields.io/github/actions/workflow/status/metalinked/laravel-settings-kit/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/metalinked/laravel-settings-kit/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/metalinked/laravel-settings-kit/tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/metalinked/laravel-settings-kit/actions/workflows/tests.yml)
 [![GitHub Release](https://img.shields.io/github/v/release/metalinked/laravel-settings-kit?style=flat-square)](https://github.com/metalinked/laravel-settings-kit/releases)
 [![Latest Stable Version](https://img.shields.io/packagist/v/metalinked/laravel-settings-kit?style=flat-square)](https://packagist.org/packages/metalinked/laravel-settings-kit)
 [![Total Downloads](https://img.shields.io/packagist/dt/metalinked/laravel-settings-kit?style=flat-square)](https://packagist.org/packages/metalinked/laravel-settings-kit)
@@ -27,22 +10,22 @@ A comprehensive Laravel package for managing global and user-specific settings w
 
 ## Table of Contents
 
-- [🚀 Features](#-features)
-- [📋 Requirements](#-requirements)
-- [⚙️ Installation](#️-installation)
-- [🛠️ Creating Settings](#️-creating-settings)
-- [⚡ Quick Start](#-quick-start)
-- [🌍 Adding Translations](#-adding-translations)
-- [🚀 REST API](#-rest-api)
-- [🎨 Multilingual Interface Examples](#-multilingual-interface-examples)
-- [📚 API Reference](#-api-reference)
-- [🔄 Global Overrides vs Default Values](#-global-overrides-vs-default-values)
-- [🔧 Data Types](#-data-types)
-- [💡 Advanced Examples](#-advanced-examples)
-- [🧪 Testing](#-testing)
-- [🤝 Contributing](#-contributing)
-- [🔒 Security](#-security)
-- [📄 License](#-license)
+- [🚀 Features](#features)
+- [📋 Requirements](#requirements)
+- [⚙️ Installation](#installation)
+- [🛠️ Creating Settings](#creating-settings)
+- [⚡ Quick Start](#quick-start)
+- [🌍 Adding Translations](#adding-translations)
+- [🚀 REST API](#rest-api)
+- [🎨 Multilingual Interface Examples](#multilingual-interface-examples)
+- [📚 API Reference](#api-reference)
+- [🔄 Global Overrides vs Default Values](#global-overrides-vs-default-values)
+- [🔧 Data Types](#data-types)
+- [💡 Advanced Examples](#advanced-examples)
+- [🧪 Testing](#testing)
+- [🤝 Contributing](#contributing)
+- [🔒 Security](#security)
+- [📄 License](#license)
 
 ## 🚀 Features
 
@@ -57,12 +40,12 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - 🛡️ **Flexible Authentication** - Support for token, Sanctum, and Passport authentication
 - 💾 **Database Agnostic** - Works with any Laravel-supported database
 
-## Requirements
+## 📋 Requirements
 
 - PHP 8.1 or higher
 - Laravel 10.0 or higher
 
-## Installation
+## ⚙️ Installation
 
 Install the package via Composer:
 
@@ -81,11 +64,6 @@ Optionally, publish the config file:
 
 ```bash
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="config"
-```
-
-## Creating Settings
-
-Before you can get or set values, you need to create preference entries. This package offers several ways to create preferences:
 ```
 
 ## 🛠️ Creating Settings
@@ -127,7 +105,7 @@ public function run(): void
 }
 ```
 
-## Quick Start
+## ⚡ Quick Start
 
 ### Basic Usage
 
@@ -180,7 +158,7 @@ Settings::createIfNotExists('new_feature', [
 ]);
 ```
 
-## Adding Translations
+## 🌍 Adding Translations
 
 The package includes a powerful multilingual system that allows you to provide labels and descriptions for your settings in multiple languages:
 
@@ -245,7 +223,7 @@ $settings = Settings::allWithTranslations('ca');
 ]
 ```
 
-## REST API
+## 🚀 REST API
 
 The package provides a complete REST API for managing settings, perfect for headless Laravel applications, mobile apps, or frontend JavaScript frameworks.
 
@@ -332,7 +310,7 @@ POST /api/settings-kit/email_notifications
 
 **📖 Complete API Documentation:** See `examples/API_USAGE.md` for detailed examples, error handling, and JavaScript integration examples.
 
-## Multilingual Interface Examples
+## 🎨 Multilingual Interface Examples
 
 The package includes practical examples for creating multilingual settings interfaces:
 
@@ -341,7 +319,7 @@ The package includes practical examples for creating multilingual settings inter
 - **Multilingual Admin Panel** - `examples/admin-multilingual-settings.blade.php`
 - **Controller Examples** - `examples/SettingsControllerExample.php`
 
-## API Reference
+## 📚 API Reference
 
 ### Settings Facade
 
@@ -404,7 +382,7 @@ Settings::set('site_name', 'Custom Name'); // Global override
 Settings::forget('site_name'); // Resets back to 'My App'
 ```
 
-## Global Overrides vs Default Values
+## 🔄 Global Overrides vs Default Values
 
 The package uses a sophisticated system that separates **original default values** from **global overrides**:
 
@@ -438,7 +416,7 @@ This system ensures you never lose your original configuration while allowing fl
 
 > **⚠️ Important:** This architecture change means that `Settings::set()` without a user ID now creates a global override instead of modifying the original default value. This ensures better data integrity and allows proper reset functionality.
 
-## Data Types
+## 🔧 Data Types
 
 The package supports the following data types:
 
@@ -448,7 +426,7 @@ The package supports the following data types:
 - `json` - JSON objects/arrays
 - `select` - Predefined options (stored as JSON in options field)
 
-## Advanced Examples
+## 💡 Advanced Examples
 
 ### User Settings Interface
 
@@ -509,7 +487,7 @@ class AdminSettingsController extends Controller
 }
 ```
 
-## Testing
+## 🧪 Testing
 
 Run the test suite:
 
@@ -517,14 +495,14 @@ Run the test suite:
 composer test
 ```
 
-## Contributing
+## 🤝 Contributing
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
-## Security
+## 🔒 Security
 
 If you discover any security related issues, please email info@metalinked.net instead of using the issue tracker.
 
-## License
+## 📄 License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
