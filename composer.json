@@ -1,0 +1,72 @@
+{
+    "name": "metalinked/laravel-settings-kit",
+    "description": "A comprehensive Laravel package for managing global and user-specific settings with role-based permissions, multi-language support, and a full REST API.",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "settings",
+        "preferences",
+        "configuration",
+        "user-settings",
+        "multilingual",
+        "roles"
+    ],
+    "homepage": "https://github.com/metalinked/laravel-settings-kit",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Metalinked",
+            "email": "info@metalinked.net"
+        }
+    ],
+    "require": {
+        "php": "^8.1|^8.2|^8.3",
+        "laravel/framework": "^9.0|^10.0|^11.0|^12.0",
+        "illuminate/support": "^9.0|^10.0|^11.0|^12.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^7.0|^8.0|^9.0|^10.0",
+        "phpunit/phpunit": "^9.5|^10.0",
+        "mockery/mockery": "^1.4.4",
+        "nunomaduro/collision": "^6.0|^7.0|^8.0",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/phpstan": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Metalinked\\LaravelSettingsKit\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Metalinked\\LaravelSettingsKit\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit",
+        "test-coverage": "vendor/bin/phpunit --coverage-html coverage",
+        "analyse": "vendor/bin/phpstan analyse",
+        "format": "vendor/bin/php-cs-fixer fix --allow-risky=yes --verbose",
+        "format-check": "vendor/bin/php-cs-fixer fix --allow-risky=yes --dry-run --diff --verbose",
+        "quality": [
+            "@format",
+            "@analyse",
+            "@test"
+        ]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Metalinked\\LaravelSettingsKit\\SettingsKitServiceProvider"
+            ],
+            "aliases": {
+                "Settings": "Metalinked\\LaravelSettingsKit\\Facades\\Settings"
+            }
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

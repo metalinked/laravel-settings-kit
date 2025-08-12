@@ -1,0 +1,39 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Testing & Coverage
+/.phpunit.cache/
+/coverage/
+.phpunit.result.cache
+
+# Environment files
+/.env
+/.env.local
+/.env.testing
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build artifacts
+/build/
+/dist/
+
+# PHP CS Fixer cache
+/.php-cs-fixer.cache
+/.php-cs-fixer.php.cache
+
+# PHPStan cache
+/.phpstan.cache
+
+# Composer lock (for packages, should not be committed)
+composer.lock
