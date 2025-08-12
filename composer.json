@@ -1,6 +1,6 @@
 {
     "name": "metalinked/laravel-settings-kit",
-    "description": "A comprehensive Laravel package for managing global and user-specific settings with role-based permissions, multi-language support, and a full REST API.",
+    "description": "A comprehensive Laravel package for managing global and user-specific settings, with role-based permissions, multi-language support, auto-creation, and a full REST API for headless and modern applications.",
     "type": "library",
     "keywords": [
         "laravel",
