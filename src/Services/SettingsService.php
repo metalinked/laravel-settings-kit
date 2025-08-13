@@ -59,6 +59,7 @@ class SettingsService {
                     },
                     'category' => 'general',
                     'role' => null,
+                    'is_user_customizable' => $userId !== null,
                 ]);
             } else {
                 throw new \InvalidArgumentException("Preference with key '{$key}' not found. Use Settings::createIfNotExists() or pass autoCreate=true to create it automatically.");

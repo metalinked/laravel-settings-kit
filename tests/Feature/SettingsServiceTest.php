@@ -495,4 +495,20 @@ class SettingsServiceTest extends TestCase {
         Settings::forget('notifications', 123);
         $this->assertEquals('0', Settings::get('notifications', 123)); // User now gets global default
     }
+
+    public function test_auto_create_user_customizable_setting() {
+        $userId = 1;
+        $key = 'user_theme';
+
+        // Ensure the setting does not exist
+        $this->assertNull(\Metalinked\LaravelSettingsKit\Models\Preference::where('key', $key)->first());
+
+        // Set with userId and autoCreate
+        \Metalinked\LaravelSettingsKit\Facades\Settings::set($key, 'dark', $userId, true);
+
+        // Check that it was created with is_user_customizable = true
+        $preference = \Metalinked\LaravelSettingsKit\Models\Preference::where('key', $key)->first();
+        $this->assertNotNull($preference);
+        $this->assertTrue($preference->is_user_customizable);
+    }
 }
