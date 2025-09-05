@@ -396,17 +396,32 @@ POST /api/settings-kit/new_setting
 
 ### API Endpoints
 
+#### Core Endpoints
 - **GET** `/api/settings-kit` - Get all settings with optional filtering
-- **GET** `/api/settings-kit/{key}` - Get specific setting
+- **GET** `/api/settings-kit/categories` - Get available categories  
+- **POST** `/api/settings-kit/preferences` - Create new preference
+
+#### Global Settings (System-wide)
+- **GET** `/api/settings-kit/global/{key}` - Get specific global setting
+- **POST** `/api/settings-kit/global/{key}` - Create/update global setting
+- **PUT** `/api/settings-kit/global/{key}` - Update global setting
+- **DELETE** `/api/settings-kit/global/{key}` - Reset global setting to default
+
+#### User Settings (User-specific)
+- **GET** `/api/settings-kit/user/{key}` - Get specific user setting
+- **POST** `/api/settings-kit/user/{key}` - Create/update user setting
+- **PUT** `/api/settings-kit/user/{key}` - Update user setting
+- **DELETE** `/api/settings-kit/user/{key}` - Reset user setting to default
+
+#### Legacy Endpoints (Backwards Compatibility)
+- **GET** `/api/settings-kit/{key}` - Get specific setting (auto-detects global/user)
 - **POST** `/api/settings-kit/{key}` - Create/update setting value
 - **PUT** `/api/settings-kit/{key}` - Update setting value
 - **DELETE** `/api/settings-kit/{key}` - Reset setting to default
-- **GET** `/api/settings-kit/categories` - Get available categories
-- **POST** `/api/settings-kit/preferences` - Create new preference
 
 **Query Parameters:**
 - `locale` - Language for translations (e.g., `ca`, `es`, `en`)
-- `user_id` - Get/set user-specific settings
+- `user_id` - Specify user ID (required for user endpoints)
 - `category` - Filter by category
 - `role` - Filter by role
 
@@ -415,8 +430,19 @@ POST /api/settings-kit/new_setting
 # Get all settings with Catalan translations
 GET /api/settings-kit?locale=ca
 
-# Get user-specific settings
-GET /api/settings-kit?user_id=123&locale=en
+# Get specific global setting
+GET /api/settings-kit/global/site_name
+
+# Get user-specific setting
+GET /api/settings-kit/user/theme?user_id=123
+
+# Update global setting
+POST /api/settings-kit/global/maintenance_mode
+{"value": true}
+
+# Update user setting
+POST /api/settings-kit/user/notifications?user_id=123
+{"value": false}
 
 # Set global setting (auto-created if SETTINGS_KIT_API_AUTO_CREATE=true)
 POST /api/settings-kit/maintenance_mode

@@ -314,4 +314,219 @@ class SettingsKitApiController extends Controller {
         // You can customize this logic based on your application
         return method_exists($user, 'isAdmin') ? $user->isAdmin() : false;
     }
+
+    // ============================================
+    // Global Settings Methods (explicit endpoints)
+    // ============================================
+
+    /**
+     * Get a specific global setting.
+     */
+    public function showGlobal(Request $request, string $key): JsonResponse {
+        try {
+            $locale = $request->get('locale');
+            
+            if ($locale) {
+                $value = Settings::getWithTranslations($key, $locale, null);
+            } else {
+                $value = Settings::get($key, null);
+            }
+
+            if ($value === null && !Settings::exists($key)) {
+                if (config('settings-kit.api.auto_create_missing_settings', false) || $request->boolean('auto_create')) {
+                    // Auto-create the setting as global
+                    $autoCreated = Settings::set($key, $request->get('default_value', ''), null);
+                    if ($autoCreated) {
+                        $value = Settings::get($key, null);
+                    }
+                } else {
+                    return response()->json(['error' => 'Global setting not found'], 404);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'key' => $key,
+                    'value' => $value,
+                    'user_id' => null,
+                    'type' => 'global'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Store a global setting value.
+     */
+    public function storeGlobal(Request $request, string $key): JsonResponse {
+        try {
+            $value = $request->get('value');
+            $updated = Settings::set($key, $value, null);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Global setting updated successfully',
+                'data' => [
+                    'key' => $key,
+                    'value' => $value,
+                    'user_id' => null,
+                    'type' => 'global'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update a global setting value.
+     */
+    public function updateGlobal(Request $request, string $key): JsonResponse {
+        return $this->storeGlobal($request, $key);
+    }
+
+    /**
+     * Delete a global setting value.
+     */
+    public function destroyGlobal(Request $request, string $key): JsonResponse {
+        try {
+            $deleted = Settings::forget($key, null);
+
+            return response()->json([
+                'success' => true,
+                'message' => $deleted ? 'Global setting deleted successfully' : 'Global setting was already at default value',
+                'data' => [
+                    'key' => $key,
+                    'user_id' => null,
+                    'type' => 'global'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    // =========================================
+    // User Settings Methods (explicit endpoints)
+    // =========================================
+
+    /**
+     * Get a specific user setting.
+     */
+    public function showUser(Request $request, string $key): JsonResponse {
+        try {
+            $userId = $request->get('user_id') ?? auth()->id();
+            if (!$userId) {
+                return response()->json(['error' => 'User ID required for user settings'], 400);
+            }
+
+            if (!$this->canAccessUserSettings($request, $userId)) {
+                return response()->json(['error' => 'Unauthorized to access user settings'], 403);
+            }
+
+            $locale = $request->get('locale');
+            
+            if ($locale) {
+                $value = Settings::getWithTranslations($key, $locale, $userId);
+            } else {
+                $value = Settings::get($key, $userId);
+            }
+
+            if ($value === null && !Settings::exists($key)) {
+                if (config('settings-kit.api.auto_create_missing_settings', false) || $request->boolean('auto_create')) {
+                    // Auto-create the setting as user customizable
+                    $autoCreated = Settings::set($key, $request->get('default_value', ''), $userId);
+                    if ($autoCreated) {
+                        $value = Settings::get($key, $userId);
+                    }
+                } else {
+                    return response()->json(['error' => 'User setting not found'], 404);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'key' => $key,
+                    'value' => $value,
+                    'user_id' => $userId,
+                    'type' => 'user'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Store a user setting value.
+     */
+    public function storeUser(Request $request, string $key): JsonResponse {
+        try {
+            $userId = $request->get('user_id') ?? auth()->id();
+            if (!$userId) {
+                return response()->json(['error' => 'User ID required for user settings'], 400);
+            }
+
+            if (!$this->canModifyUserSettings($request, $userId)) {
+                return response()->json(['error' => 'Unauthorized to modify user settings'], 403);
+            }
+
+            $value = $request->get('value');
+            $updated = Settings::set($key, $value, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User setting updated successfully',
+                'data' => [
+                    'key' => $key,
+                    'value' => $value,
+                    'user_id' => $userId,
+                    'type' => 'user'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update a user setting value.
+     */
+    public function updateUser(Request $request, string $key): JsonResponse {
+        return $this->storeUser($request, $key);
+    }
+
+    /**
+     * Delete a user setting value.
+     */
+    public function destroyUser(Request $request, string $key): JsonResponse {
+        try {
+            $userId = $request->get('user_id') ?? auth()->id();
+            if (!$userId) {
+                return response()->json(['error' => 'User ID required for user settings'], 400);
+            }
+
+            if (!$this->canModifyUserSettings($request, $userId)) {
+                return response()->json(['error' => 'Unauthorized to modify user settings'], 403);
+            }
+
+            $deleted = Settings::forget($key, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => $deleted ? 'User setting deleted successfully' : 'User setting was already at default value',
+                'data' => [
+                    'key' => $key,
+                    'user_id' => $userId,
+                    'type' => 'user'
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

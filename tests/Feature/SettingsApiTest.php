@@ -111,6 +111,96 @@ class SettingsApiTest extends TestCase {
                 ->assertJson(['error' => 'Invalid or missing token']);
     }
 
+    public function test_can_access_global_settings_endpoint() {
+        Settings::create([
+            'key' => 'global_test_setting',
+            'type' => 'string',
+            'default_value' => 'global_value',
+            'category' => 'test',
+            'is_user_customizable' => false,
+        ]);
+
+        $response = $this->getJson('/api/settings-kit/global/global_test_setting', [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'key' => 'global_test_setting',
+                        'value' => 'global_value',
+                        'user_id' => null,
+                        'type' => 'global'
+                    ],
+                ]);
+    }
+
+    public function test_can_access_user_settings_endpoint() {
+        Settings::create([
+            'key' => 'user_test_setting',
+            'type' => 'string',
+            'default_value' => 'default_value',
+            'category' => 'test',
+            'is_user_customizable' => true,
+        ]);
+
+        // Set a user-specific value
+        Settings::set('user_test_setting', 'user_value', 1);
+
+        $response = $this->getJson('/api/settings-kit/user/user_test_setting?user_id=1', [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'key' => 'user_test_setting',
+                        'value' => 'user_value',
+                        'user_id' => 1,
+                        'type' => 'user'
+                    ],
+                ]);
+    }
+
+    public function test_can_update_global_settings() {
+        Settings::create([
+            'key' => 'updateable_global',
+            'type' => 'string',
+            'default_value' => 'old_value',
+            'category' => 'test',
+            'is_user_customizable' => false,
+        ]);
+
+        $response = $this->postJson('/api/settings-kit/global/updateable_global', [
+            'value' => 'new_global_value'
+        ], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'message' => 'Global setting updated successfully',
+                    'data' => [
+                        'key' => 'updateable_global',
+                        'value' => 'new_global_value',
+                        'user_id' => null,
+                        'type' => 'global'
+                    ],
+                ]);
+    }
+
+    public function test_user_settings_require_user_id() {
+        $response = $this->getJson('/api/settings-kit/user/some_setting', [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(400)
+                ->assertJson(['error' => 'User ID required for user settings']);
+    }
+
     public function test_can_get_all_settings() {
         Settings::createWithTranslations('test_setting', [
             'type' => 'boolean',

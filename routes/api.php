@@ -28,15 +28,46 @@ Route::prefix(config('settings-kit.api.prefix', 'api/settings-kit'))
         // Create a new preference
         Route::post('/preferences', [SettingsKitApiController::class, 'createPreference']);
         
-        // Get a specific setting
+        // Global settings routes (for system-wide settings)
+        Route::prefix('global')->group(function () {
+            // Get a specific global setting
+            Route::get('/{key}', [SettingsKitApiController::class, 'showGlobal']);
+            
+            // Create or update a global setting value
+            Route::post('/{key}', [SettingsKitApiController::class, 'storeGlobal']);
+            
+            // Update a global setting value
+            Route::put('/{key}', [SettingsKitApiController::class, 'updateGlobal']);
+            
+            // Delete a global setting value (reset to default)
+            Route::delete('/{key}', [SettingsKitApiController::class, 'destroyGlobal']);
+        });
+        
+        // User settings routes (for user-specific settings)
+        Route::prefix('user')->group(function () {
+            // Get a specific user setting
+            Route::get('/{key}', [SettingsKitApiController::class, 'showUser']);
+            
+            // Create or update a user setting value
+            Route::post('/{key}', [SettingsKitApiController::class, 'storeUser']);
+            
+            // Update a user setting value
+            Route::put('/{key}', [SettingsKitApiController::class, 'updateUser']);
+            
+            // Delete a user setting value (reset to default)
+            Route::delete('/{key}', [SettingsKitApiController::class, 'destroyUser']);
+        });
+        
+        // Legacy routes (backwards compatibility)
+        // Get a specific setting (backwards compatibility - defaults to user if authenticated, global otherwise)
         Route::get('/{key}', [SettingsKitApiController::class, 'show']);
         
-        // Create or update a setting value
+        // Create or update a setting value (backwards compatibility)
         Route::post('/{key}', [SettingsKitApiController::class, 'store']);
         
-        // Update a setting value
+        // Update a setting value (backwards compatibility)
         Route::put('/{key}', [SettingsKitApiController::class, 'update']);
         
-        // Delete a setting value (reset to default)
+        // Delete a setting value (backwards compatibility)
         Route::delete('/{key}', [SettingsKitApiController::class, 'destroy']);
     });
