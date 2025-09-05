@@ -16,6 +16,12 @@ class SettingsKitApiAuth {
             return response()->json(['error' => 'API not enabled'], 404);
         }
 
+        // Allow bypassing auth in development
+        if (config('settings-kit.api.disable_auth_in_development', false) && 
+            app()->environment(['local', 'testing'])) {
+            return $next($request);
+        }
+
         $authMode = config('settings-kit.api.auth_mode', 'token');
 
         switch ($authMode) {

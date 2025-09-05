@@ -36,5 +36,8 @@ abstract class TestCase extends BaseTestCase {
         ]);
 
         $app['config']->set('settings-kit.cache.enabled', false);
+        
+        // Set default testing environment
+        $app['env'] = 'testing';
     }
 }

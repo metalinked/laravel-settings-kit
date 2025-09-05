@@ -21,6 +21,7 @@ A comprehensive Laravel package for managing global and user-specific settings w
 - [🔄 Global Overrides vs Default Values](#user-content--global-overrides-vs-default-values)
 - [🔧 Data Types](#user-content--data-types)
 - [💡 Advanced Examples](#user-content--advanced-examples)
+- [🔧 Troubleshooting](#user-content--troubleshooting)
 - [🧪 Testing](#user-content--testing)
 - [🤝 Contributing](#user-content--contributing)
 - [🔒 Security](#user-content--security)
@@ -281,23 +282,67 @@ The package provides a complete REST API for managing settings, perfect for head
 
 ### API Configuration
 
-Enable the API by adding these variables to your `.env` file:
+The API supports both development and production environments with different setup requirements.
+
+#### 🛠️ Development Setup (Quick Start)
+
+For local development and testing, you can bypass authentication entirely:
 
 ```env
-# Enable/disable the API
+# Enable API
 SETTINGS_KIT_API_ENABLED=true
 
-# API route prefix (default: api/settings-kit)
-SETTINGS_KIT_API_PREFIX=api/settings-kit
+# Bypass authentication in local/testing environments
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
 
-# Authentication mode: token, sanctum, or passport
+# Auto-create missing settings (recommended for development)
+SETTINGS_KIT_API_AUTO_CREATE=true
+
+# Optional: Custom API prefix
+SETTINGS_KIT_API_PREFIX=api/settings-kit
+```
+
+With this setup, you can immediately use the API without any authentication:
+
+```bash
+# Works immediately in development
+curl http://your-local-app.test/api/settings-kit/global/site_name
+```
+
+#### 🔒 Production Setup
+
+For production environments, configure proper authentication:
+
+**Token Authentication** (Simple):
+```env
+# Enable API
+SETTINGS_KIT_API_ENABLED=true
+
+# Disable development bypass (or remove the line)
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+
+# Authentication mode
 SETTINGS_KIT_API_AUTH=token
 
-# API token (required if using token auth)
+# Secure API token
 SETTINGS_KIT_API_TOKEN=your-secure-random-token-here
 
-# Auto-create missing settings via API (default: false)
-SETTINGS_KIT_API_AUTO_CREATE=true
+# Auto-create settings (optional)
+SETTINGS_KIT_API_AUTO_CREATE=false
+```
+
+**Sanctum Authentication** (User-based):
+```env
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+SETTINGS_KIT_API_AUTH=sanctum
+```
+
+**Passport Authentication** (OAuth2):
+```env
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+SETTINGS_KIT_API_AUTH=passport
 ```
 
 ### API Authentication
@@ -593,6 +638,89 @@ class AdminSettingsController extends Controller
     }
 }
 ```
+
+## 🔧 Troubleshooting
+
+### API Authentication Issues
+
+**Problem**: Getting 401/403 errors when accessing API endpoints in development
+
+**Solution**: Enable development authentication bypass:
+```env
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
+```
+
+**Problem**: API not working in production with authentication
+
+**Solution**: Ensure proper authentication setup:
+```env
+# Check these settings
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+SETTINGS_KIT_API_AUTH=token
+SETTINGS_KIT_API_TOKEN=your-secure-token
+```
+
+### Settings Not Persisting
+
+**Problem**: Settings appear to save but don't persist
+
+**Possible Causes**:
+1. Cache is enabled but not working properly
+2. Database migration not run
+3. Wrong user model configuration
+
+**Solutions**:
+```bash
+# Clear cache
+php artisan cache:clear
+
+# Check migrations
+php artisan migrate:status
+
+# Test database connection
+php artisan tinker
+>>> \Metalinked\LaravelSettingsKit\Models\Preference::count()
+```
+
+### Auto-Creation Not Working
+
+**Problem**: Settings aren't being created automatically
+
+**Check Configuration**:
+```env
+# For API auto-creation
+SETTINGS_KIT_API_AUTO_CREATE=true
+
+# In your seeder/code
+Settings::set('new_setting', 'value', $userId); // Auto-creates with is_user_customizable=true
+Settings::set('global_setting', 'value');       // Auto-creates with is_user_customizable=false
+```
+
+### Performance Issues
+
+**Problem**: Slow settings retrieval
+
+**Solutions**:
+```env
+# Enable caching
+SETTINGS_KIT_CACHE_ENABLED=true
+SETTINGS_KIT_CACHE_TTL=3600
+```
+
+### Environment Detection Issues
+
+**Problem**: Development bypass not working
+
+**Check**: Ensure your app environment is set to 'local' or 'testing':
+```env
+APP_ENV=local
+# or
+APP_ENV=testing
+```
+
+The bypass only works in these environments for security.
 
 ## 🧪 Testing
 

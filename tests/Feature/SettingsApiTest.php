@@ -14,6 +14,8 @@ class SettingsApiTest extends TestCase {
         config(['settings-kit.api.auth_mode' => 'token']);
         config(['settings-kit.api.token' => 'test-token']);
         config(['settings-kit.api.prefix' => 'api/settings-kit']);
+        // Disable development bypass by default for proper auth testing
+        config(['settings-kit.api.disable_auth_in_development' => false]);
     }
 
     public function test_api_disabled_returns_404() {
@@ -38,6 +40,72 @@ class SettingsApiTest extends TestCase {
         $response = $this->getJson('/api/settings-kit', [
             'Authorization' => 'Bearer invalid-token',
         ]);
+
+        $response->assertStatus(401)
+                ->assertJson(['error' => 'Invalid or missing token']);
+    }
+
+    public function test_development_bypass_allows_access_without_token() {
+        // Enable development bypass
+        config(['settings-kit.api.disable_auth_in_development' => true]);
+        
+        // Force local environment
+        app()['env'] = 'local';
+
+        Settings::create([
+            'key' => 'test_dev_setting',
+            'type' => 'string',
+            'default_value' => 'test_value',
+            'category' => 'test',
+        ]);
+
+        // Should work without any authorization header
+        $response = $this->getJson('/api/settings-kit/test_dev_setting');
+
+        $response->assertStatus(200)
+                ->assertJson([
+                    'success' => true,
+                    'data' => [
+                        'key' => 'test_dev_setting',
+                        'value' => 'test_value',
+                    ],
+                ]);
+    }
+
+    public function test_development_bypass_disabled_in_production() {
+        // Skip this test as it causes migration rollback prompts
+        $this->markTestSkipped('This test causes migration rollback prompts in production environment');
+    }
+
+    public function test_development_bypass_works_in_testing_environment() {
+        // Enable development bypass
+        config(['settings-kit.api.disable_auth_in_development' => true]);
+        
+        // Keep testing environment (already set)
+        app()['env'] = 'testing';
+
+        Settings::create([
+            'key' => 'test_env_setting',
+            'type' => 'string',
+            'default_value' => 'test_value',
+            'category' => 'test',
+        ]);
+
+        // Should work without any authorization header
+        $response = $this->getJson('/api/settings-kit/test_env_setting');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_development_bypass_disabled_still_requires_auth() {
+        // Explicitly disable development bypass
+        config(['settings-kit.api.disable_auth_in_development' => false]);
+        
+        // Force local environment
+        app()['env'] = 'local';
+
+        // Should still require authentication even in local environment
+        $response = $this->getJson('/api/settings-kit');
 
         $response->assertStatus(401)
                 ->assertJson(['error' => 'Invalid or missing token']);

@@ -65,6 +65,16 @@ return [
     |--------------------------------------------------------------------------
     |
     | Configuration for the REST API endpoints.
+    | 
+    | Development Setup:
+    | - Set SETTINGS_KIT_API_ENABLED=true
+    | - Set SETTINGS_KIT_API_DISABLE_AUTH_DEV=true (bypasses auth in local/testing)
+    | - No token/auth setup needed for development
+    | 
+    | Production Setup:
+    | - Set SETTINGS_KIT_API_ENABLED=true
+    | - Set SETTINGS_KIT_API_DISABLE_AUTH_DEV=false (or remove)
+    | - Configure appropriate auth_mode and credentials
     |
     */
     'api' => [
@@ -72,6 +82,7 @@ return [
         'prefix' => env('SETTINGS_KIT_API_PREFIX', 'api/settings-kit'),
         'auth_mode' => env('SETTINGS_KIT_API_AUTH', 'token'), // 'token', 'sanctum', 'passport'
         'token' => env('SETTINGS_KIT_API_TOKEN'),
+        'disable_auth_in_development' => env('SETTINGS_KIT_API_DISABLE_AUTH_DEV', true),
         'middleware' => ['api'], // Base middleware for all API routes
         'auto_create_missing_settings' => env('SETTINGS_KIT_API_AUTO_CREATE', false), // Auto-create settings via API
     ],
