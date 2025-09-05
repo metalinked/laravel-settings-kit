@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.2...v1.0.3) (2025-09-05)
+
+
+### Bug Fixes
+
+* completely solved issues with settings kit endpoints, config, tests, and docs ([4f1994a](https://github.com/metalinked/laravel-settings-kit/commit/4f1994a1d554731a912000fe0616984c610c451f))
+
 ## [1.0.2](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.1...v1.0.2) (2025-09-05)
 
 
