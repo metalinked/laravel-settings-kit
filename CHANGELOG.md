@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.1...v1.0.2) (2025-09-05)
+
+
+### Bug Fixes
+
+* add smart API auth middleware, flexible config, docs & tests ([5831f7b](https://github.com/metalinked/laravel-settings-kit/commit/5831f7b4b1d045ec6633489cdd77755ea74df76b))
+
 ## [1.0.1](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.0...v1.0.1) (2025-08-13)
 
 
