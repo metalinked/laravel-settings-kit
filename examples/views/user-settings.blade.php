@@ -97,7 +97,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Millora UX: actualitzar labels de switches
+    // UX improvement: update switch labels
     const switches = document.querySelectorAll('.form-check-input[type="checkbox"]');
     switches.forEach(switch => {
         switch.addEventListener('change', function() {

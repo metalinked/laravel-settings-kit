@@ -37,7 +37,7 @@ class SettingsSeeder extends Seeder
             'en' => ['title' => 'Marketing Emails', 'text' => 'Receive special offers and news'],
         ]);
 
-        // PREFERÈNCIES DE PRIVACITAT
+        // PRIVACY PREFERENCES
         $this->createPreference([
             'key' => 'profile_public',
             'type' => 'boolean',
@@ -62,7 +62,7 @@ class SettingsSeeder extends Seeder
             'en' => ['title' => 'Show Email', 'text' => 'Show my email address in public profile'],
         ]);
 
-        // PREFERÈNCIES D'APARENÇA
+        // APPEARANCE PREFERENCES
         $this->createPreference([
             'key' => 'preferred_language',
             'type' => 'select',
@@ -108,7 +108,7 @@ class SettingsSeeder extends Seeder
             'en' => ['title' => 'Contact Form', 'text' => 'Enable contact form on website'],
         ]);
 
-        // CONFIGURACIONS NOMÉS PER ADMINS
+        // ADMIN-ONLY SETTINGS
         $this->createPreference([
             'key' => 'admin_notify_new_users',
             'type' => 'boolean',

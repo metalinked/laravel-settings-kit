@@ -33,7 +33,7 @@ return (new PhpCsFixer\Config())
         'method_argument_space' => [
             'on_multiline' => 'ensure_fully_multiline',
         ],
-        // Configuració per estil K&R (claus obertura a la mateixa línia) - regles modernes
+        // Configuration for K&R style (opening braces on same line) - modern rules
         'control_structure_braces' => true,
         'control_structure_continuation_position' => ['position' => 'same_line'],
         'declare_parentheses' => true,

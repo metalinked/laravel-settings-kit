@@ -14,12 +14,12 @@ class UserSettingsController extends Controller
     {
         $user = $request->user();
         
-        // Obtenir totes les categories disponibles per aquest usuari
+        // Get all available categories for this user
         $categories = Settings::getCategories();
         $userSettings = [];
         
         foreach ($categories as $category) {
-            // Obtenir configuracions per categoria amb valors d'usuari
+            // Get category settings with user values
             $categorySettings = Settings::getByCategory($category, $user->id);
             
             if (!empty($categorySettings)) {
@@ -40,7 +40,7 @@ class UserSettingsController extends Controller
         
         foreach ($settings as $key => $value) {
             if (Settings::exists($key)) {
-                // Validar que l'usuari pot modificar aquesta preferència
+                // Validate that user can modify this preference
                 if ($this->canUserModifySettings($key, $user)) {
                     Settings::set($key, $value, $user->id);
                 }
@@ -52,8 +52,8 @@ class UserSettingsController extends Controller
     
     private function canUserModifySettings(string $key, $user): bool
     {
-        // Lògica per validar permisos (opcional)
-        return true; // Per simplicitat
+        // Logic to validate permissions (optional)
+        return true; // For simplicity
     }
 }
 
@@ -73,7 +73,7 @@ class AdminSettingsController extends Controller
         // Configuracions globals (role = null)
         $globalSettings = Settings::all();
         
-        // Configuracions específiques d'admin
+        // Admin-specific configurations
         $adminSettings = Settings::all('admin', $user->id);
         
         return view('admin.settings', compact('globalSettings', 'adminSettings'));

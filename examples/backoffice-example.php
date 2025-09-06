@@ -1,13 +1,13 @@
 <?php
 
-// Exemple pràctic per un backoffice
+// Practical example for a backoffice
 
 use Metalinked\LaravelSettingsKit\Facades\Settings;
 use Metalinked\LaravelSettingsKit\Models\Preference;
 
-// 1. CONFIGURACIONS GLOBALS (administrables pels admins)
+// 1. GLOBAL SETTINGS (manageable by admins)
 $globalSettings = [
-    // Control d'accés
+    // Access control
     [
         'key' => 'registration_open',
         'type' => 'boolean',
@@ -31,7 +31,7 @@ $globalSettings = [
     ],
 ];
 
-// 2. PREFERÈNCIES PER USUARIS NORMALS
+// 2. USER PREFERENCES (normal users)
 $userSettings = [
     // Notificacions
     [
@@ -73,7 +73,7 @@ $userSettings = [
     ],
 ];
 
-// 3. CONFIGURACIONS NOMÉS PER ADMINS
+// 3. ADMIN-ONLY SETTINGS
 $adminSettings = [
     // Notificacions admin
     [
@@ -103,7 +103,7 @@ $adminSettings = [
         ]),
     ],
     
-    // Accés a dades
+    // Data access
     [
         'key' => 'can_export_all_data',
         'type' => 'boolean',
@@ -113,20 +113,20 @@ $adminSettings = [
     ],
 ];
 
-// Crear totes les preferències
+// Create all preferences
 $allSettings = array_merge($globalSettings, $userSettings, $adminSettings);
 
 foreach ($allSettings as $setting) {
     Settings::create($setting);
 }
 
-// EXEMPLE D'ÚS EN CONTROLADORS
+// USAGE EXAMPLES IN CONTROLLERS
 
 class UserController extends Controller
 {
     public function register(Request $request)
     {
-        // Comprovar si el registre està obert
+        // Check if registration is open
         if (!Settings::isEnabled('registration_open')) {
             return redirect()->back()->with('error', 'Registrations are currently closed');
         }
@@ -134,11 +134,11 @@ class UserController extends Controller
         // Processar registre...
         $user = User::create($request->validated());
         
-        // Notificar admins si tenen la preferència activada
+        // Notify admins if they have the preference enabled
         $admins = User::where('role', 'admin')->get();
         foreach ($admins as $admin) {
             if (Settings::isEnabled('notify_new_users', $admin->id)) {
-                // Enviar notificació a aquest admin
+                // Send notification to this admin
                 $admin->notify(new NewUserRegistered($user));
             }
         }
@@ -151,7 +151,7 @@ class SettingsController extends Controller
     {
         $user = $request->user();
         
-        // Obtenir preferències de l'usuari per categories
+        // Get user preferences by categories
         $notifications = Settings::getByCategory('notifications', $user->id);
         $privacy = Settings::getByCategory('privacy', $user->id);
         
@@ -178,10 +178,10 @@ class SettingsController extends Controller
             abort(403);
         }
         
-        // Configuracions globals que pot modificar
+        // Global settings they can modify
         $globalSettings = Settings::all();
         
-        // Preferències personals d'admin
+        // Personal admin preferences
         $adminNotifications = Settings::getByCategory('admin_notifications', $user->id);
         $dataAccess = Settings::getByCategory('data_access', $user->id);
         
@@ -189,7 +189,7 @@ class SettingsController extends Controller
     }
 }
 
-// MIDDLEWARE PER COMPROVAR ACCESSOS
+// MIDDLEWARE TO CHECK ACCESS
 
 class CheckFeatureEnabled
 {
@@ -207,7 +207,7 @@ class CheckFeatureEnabled
     }
 }
 
-// Ús en routes:
+// Usage in routes:
 // Route::get('/contact', [ContactController::class, 'show'])->middleware('feature:contact_form_enabled');
 
 // BLADE TEMPLATES
@@ -242,20 +242,20 @@ class CheckFeatureEnabled
 </form>
 */
 
-// COMPROVACIONS EN ELS MODELS/OBSERVERS
+// CHECKS IN MODELS/OBSERVERS
 
 class UserObserver
 {
     public function created(User $user)
     {
-        // Comprovar si l'admin vol ser notificat
+        // Check if admin wants to be notified
         if (Settings::isEnabled('notify_new_users', auth()->id())) {
-            // Enviar notificació
+            // Send notification
         }
     }
 }
 
-// EXEMPLE AVANÇAT: CONFIGURACIÓ DE VISIBILITAT DE DADES
+// ADVANCED EXAMPLE: DATA VISIBILITY CONFIGURATION
 
 class UserProfileController extends Controller
 {
@@ -268,12 +268,12 @@ class UserProfileController extends Controller
             'avatar' => $user->avatar,
         ];
         
-        // Comprovar si l'usuari permet mostrar l'email
+        // Check if user allows showing email
         if (Settings::get('show_email_to_others', $user->id)) {
             $profile['email'] = $user->email;
         }
         
-        // Comprovar si el perfil és públic
+        // Check if profile is public
         if (!Settings::get('profile_public', $user->id) && $currentUser->id !== $user->id) {
             abort(404);
         }
