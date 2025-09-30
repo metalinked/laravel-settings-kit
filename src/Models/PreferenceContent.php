@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PreferenceContent extends Model {
     protected $fillable = [
         'preference_id',
-        'lang',
+        'locale',
         'title',
         'text',
     ];

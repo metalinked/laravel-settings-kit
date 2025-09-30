@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\App;
  * @method static Builder forCategory(string $category)
  * @method mixed getDefaultValue()
  * @method mixed getUserValue(int $userId)
- * @method string|null getLabel(string $lang = null)
- * @method string|null getDescription(string $lang = null)
+ * @method string|null getLabel(string $locale = null)
+ * @method string|null getDescription(string $locale = null)
  */
 class Preference extends Model {
     protected $fillable = [
@@ -58,11 +58,11 @@ class Preference extends Model {
     public function getTranslatedContent(string $locale = null): ?PreferenceContent {
         $locale ??= App::getLocale();
 
-        $content = $this->contents()->where('lang', $locale)->first();
+        $content = $this->contents()->where('locale', $locale)->first();
 
         if (!$content) {
             $fallbackLocale = config('settings-kit.fallback_locale', 'en');
-            $content = $this->contents()->where('lang', $fallbackLocale)->first();
+            $content = $this->contents()->where('locale', $fallbackLocale)->first();
         }
 
         return $content instanceof PreferenceContent ? $content : null;
