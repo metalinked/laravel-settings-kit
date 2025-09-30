@@ -65,7 +65,7 @@ class ExportSettingsCommand extends Command {
             ];
 
             foreach ($preference->contents as $content) {
-                $settingData['translations'][$content->locale] = [
+                $settingData['translations'][$content->lang] = [
                     'title' => $content->title,
                     'text' => $content->text,
                 ];

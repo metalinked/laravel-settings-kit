@@ -31,13 +31,13 @@ class PreferenceModelTest extends TestCase {
 
         $content = PreferenceContent::create([
             'preference_id' => $preference->id,
-            'locale' => 'en',
+            'lang' => 'en',
             'title' => 'Test Setting',
             'text' => 'This is a test setting',
         ]);
 
         $this->assertEquals('Test Setting', $content->title);
-        $this->assertEquals('en', $content->locale);
+        $this->assertEquals('en', $content->lang);
         $this->assertEquals($preference->id, $content->preference_id);
     }
 
@@ -68,7 +68,7 @@ class PreferenceModelTest extends TestCase {
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'locale' => 'en',
+            'lang' => 'en',
             'title' => 'Test Setting',
             'text' => 'Description',
         ]);
@@ -92,14 +92,14 @@ class PreferenceModelTest extends TestCase {
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'locale' => 'en',
+            'lang' => 'en',
             'title' => 'English Title',
             'text' => 'English Description',
         ]);
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'locale' => 'es',
+            'lang' => 'es',
             'title' => 'Spanish Title',
             'text' => 'Spanish Description',
         ]);

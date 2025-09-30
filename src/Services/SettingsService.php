@@ -274,7 +274,7 @@ class SettingsService {
             if (is_array($content) && isset($content['title'])) {
                 \Metalinked\LaravelSettingsKit\Models\PreferenceContent::create([
                     'preference_id' => $preference->id,
-                    'locale' => $locale,
+                    'lang' => $locale,
                     'title' => $content['title'],
                     'text' => $content['description'] ?? $content['text'] ?? '',
                 ]);
@@ -299,7 +299,7 @@ class SettingsService {
                 \Metalinked\LaravelSettingsKit\Models\PreferenceContent::updateOrCreate(
                     [
                         'preference_id' => $preference->id,
-                        'locale' => $locale,
+                        'lang' => $locale,
                     ],
                     [
                         'title' => $content['title'],

@@ -99,8 +99,8 @@ class ImportSettingsCommand extends Command {
                     $this->line("  {$action}: {$key}");
 
                     if (isset($settingData['translations'])) {
-                        foreach ($settingData['translations'] as $locale => $translation) {
-                            $this->line("    Translation ({$locale}): {$translation['title']}");
+                        foreach ($settingData['translations'] as $lang => $translation) {
+                            $this->line("    Translation ({$lang}): {$translation['title']}");
                         }
                     }
 
@@ -124,11 +124,11 @@ class ImportSettingsCommand extends Command {
 
                 // Import translations
                 if (isset($settingData['translations']) && is_array($settingData['translations'])) {
-                    foreach ($settingData['translations'] as $locale => $translation) {
+                    foreach ($settingData['translations'] as $lang => $translation) {
                         PreferenceContent::updateOrCreate(
                             [
                                 'preference_id' => $preference->id,
-                                'locale' => $locale,
+                                'lang' => $lang,
                             ],
                             [
                                 'title' => $translation['title'] ?? '',
