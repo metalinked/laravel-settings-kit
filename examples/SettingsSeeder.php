@@ -143,10 +143,10 @@ class SettingsSeeder extends Seeder
     {
         $preference = Preference::create($preferenceData);
 
-        foreach ($translations as $lang => $content) {
+        foreach ($translations as $locale => $content) {
             PreferenceContent::create([
                 'preference_id' => $preference->id,
-                'lang' => $lang,
+                'locale' => $locale,
                 'title' => $content['title'],
                 'text' => $content['text'],
             ]);

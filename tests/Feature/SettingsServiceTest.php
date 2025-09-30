@@ -238,14 +238,14 @@ class SettingsServiceTest extends TestCase {
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'lang' => 'en',
+            'locale' => 'en',
             'title' => 'Allow Comments',
             'text' => 'Enable or disable comments',
         ]);
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'lang' => 'es',
+            'locale' => 'es',
             'title' => 'Permitir Comentarios',
             'text' => 'Activar o desactivar comentarios',
         ]);
@@ -263,7 +263,7 @@ class SettingsServiceTest extends TestCase {
 
         PreferenceContent::create([
             'preference_id' => $preference->id,
-            'lang' => 'en',
+            'locale' => 'en',
             'title' => 'Allow Comments',
             'text' => 'Enable or disable comments on posts',
         ]);

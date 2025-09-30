@@ -17,13 +17,13 @@ return new class extends Migration
         Schema::create($tableName, function (Blueprint $table) use ($preferencesTable) {
             $table->id();
             $table->foreignId('preference_id')->constrained($preferencesTable)->onDelete('cascade');
-            $table->string('lang', 5)->index();
+            $table->string('locale', 5)->index();
             $table->string('title');
             $table->text('text')->nullable();
             $table->timestamps();
 
-            $table->unique(['preference_id', 'lang']);
-            $table->index(['lang', 'preference_id']);
+            $table->unique(['preference_id', 'locale']);
+            $table->index(['locale', 'preference_id']);
         });
     }
 
