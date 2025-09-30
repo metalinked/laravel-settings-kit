@@ -17,7 +17,7 @@ class SettingsKitApiAuth {
         }
 
         // Allow bypassing auth in development
-        if (config('settings-kit.api.disable_auth_in_development', false) && 
+        if (config('settings-kit.api.disable_auth_in_development', false) &&
             app()->environment(['local', 'testing'])) {
             return $next($request);
         }

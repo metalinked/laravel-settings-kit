@@ -48,7 +48,7 @@ class SettingsApiTest extends TestCase {
     public function test_development_bypass_allows_access_without_token() {
         // Enable development bypass
         config(['settings-kit.api.disable_auth_in_development' => true]);
-        
+
         // Force local environment
         app()['env'] = 'local';
 
@@ -80,7 +80,7 @@ class SettingsApiTest extends TestCase {
     public function test_development_bypass_works_in_testing_environment() {
         // Enable development bypass
         config(['settings-kit.api.disable_auth_in_development' => true]);
-        
+
         // Keep testing environment (already set)
         app()['env'] = 'testing';
 
@@ -100,7 +100,7 @@ class SettingsApiTest extends TestCase {
     public function test_development_bypass_disabled_still_requires_auth() {
         // Explicitly disable development bypass
         config(['settings-kit.api.disable_auth_in_development' => false]);
-        
+
         // Force local environment
         app()['env'] = 'local';
 
@@ -131,7 +131,7 @@ class SettingsApiTest extends TestCase {
                         'key' => 'global_test_setting',
                         'value' => 'global_value',
                         'user_id' => null,
-                        'type' => 'global'
+                        'type' => 'global',
                     ],
                 ]);
     }
@@ -159,7 +159,7 @@ class SettingsApiTest extends TestCase {
                         'key' => 'user_test_setting',
                         'value' => 'user_value',
                         'user_id' => 1,
-                        'type' => 'user'
+                        'type' => 'user',
                     ],
                 ]);
     }
@@ -174,7 +174,7 @@ class SettingsApiTest extends TestCase {
         ]);
 
         $response = $this->postJson('/api/settings-kit/global/updateable_global', [
-            'value' => 'new_global_value'
+            'value' => 'new_global_value',
         ], [
             'Authorization' => 'Bearer test-token',
         ]);
@@ -187,7 +187,7 @@ class SettingsApiTest extends TestCase {
                         'key' => 'updateable_global',
                         'value' => 'new_global_value',
                         'user_id' => null,
-                        'type' => 'global'
+                        'type' => 'global',
                     ],
                 ]);
     }

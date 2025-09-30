@@ -325,7 +325,7 @@ class SettingsKitApiController extends Controller {
     public function showGlobal(Request $request, string $key): JsonResponse {
         try {
             $locale = $request->get('locale');
-            
+
             if ($locale) {
                 $value = Settings::getWithTranslations($key, $locale, null);
             } else {
@@ -350,7 +350,7 @@ class SettingsKitApiController extends Controller {
                     'key' => $key,
                     'value' => $value,
                     'user_id' => null,
-                    'type' => 'global'
+                    'type' => 'global',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -373,7 +373,7 @@ class SettingsKitApiController extends Controller {
                     'key' => $key,
                     'value' => $value,
                     'user_id' => null,
-                    'type' => 'global'
+                    'type' => 'global',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -401,7 +401,7 @@ class SettingsKitApiController extends Controller {
                 'data' => [
                     'key' => $key,
                     'user_id' => null,
-                    'type' => 'global'
+                    'type' => 'global',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -428,7 +428,7 @@ class SettingsKitApiController extends Controller {
             }
 
             $locale = $request->get('locale');
-            
+
             if ($locale) {
                 $value = Settings::getWithTranslations($key, $locale, $userId);
             } else {
@@ -453,7 +453,7 @@ class SettingsKitApiController extends Controller {
                     'key' => $key,
                     'value' => $value,
                     'user_id' => $userId,
-                    'type' => 'user'
+                    'type' => 'user',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -485,7 +485,7 @@ class SettingsKitApiController extends Controller {
                     'key' => $key,
                     'value' => $value,
                     'user_id' => $userId,
-                    'type' => 'user'
+                    'type' => 'user',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -522,7 +522,7 @@ class SettingsKitApiController extends Controller {
                 'data' => [
                     'key' => $key,
                     'user_id' => $userId,
-                    'type' => 'user'
+                    'type' => 'user',
                 ],
             ]);
         } catch (\Exception $e) {
