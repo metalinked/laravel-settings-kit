@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.3...v1.1.0) (2025-09-30)
+
+
+### Features
+
+* rename lang column to locale for Laravel consistency ([242acb0](https://github.com/metalinked/laravel-settings-kit/commit/242acb06b3314ed3d8b85eff5f10ae6538ea7cf4))
+
+
+### Bug Fixes
+
+* correct locale field references in translation queries ([19906d9](https://github.com/metalinked/laravel-settings-kit/commit/19906d95b6aa23db56fd242c216bc4fdf81be7fb))
+
 ## [1.0.3](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.2...v1.0.3) (2025-09-05)
 
 
