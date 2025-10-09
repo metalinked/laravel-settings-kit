@@ -40,16 +40,16 @@ if (Settings::isEnabled('maintenance_mode')) {
 
 **That's it!** The package automatically creates settings as you use them.
 
-## 📚 Table of Contents
+## 📋 Table of Contents
 
 - [🚀 Quick Start](#-quick-start)
 - [✨ Features](#-features)
-- [📦 Installation](#-installation)
-- [🎯 Basic Usage](#-basic-usage)
-- [📊 Types of Settings](#-types-of-settings)
-- [🌍 Multilingual Support](#-multilingual-support)
-- [🔌 REST API](#-rest-api)
-- [🚀 Advanced Features](#-advanced-features)
+- [⚙️ Installation](#️-installation)
+- [�️ Basic Usage](#️-basic-usage)
+- [🌐 Types of Settings](#-types-of-settings)
+- [� Multilingual Support](#-multilingual-support)
+- [� REST API](#-rest-api)
+- [� Advanced Features](#-advanced-features)
 - [🔧 Configuration](#-configuration)
 - [🔧 Troubleshooting](#-troubleshooting)
 - [🧪 Testing](#-testing)
@@ -58,17 +58,17 @@ if (Settings::isEnabled('maintenance_mode')) {
 
 ## ✨ Features
 
-- 🌍 **Global and User-specific Settings** - Manage both application-wide and individual user preferences
+- 🔧 **Global and User-specific Settings** - Manage both application-wide and individual user preferences
 - 👥 **Role-based Permissions** - Control which settings are visible/editable by user roles
-- 🌐 **Multi-language Support** - Full multilingual support with automatic fallbacks
-- 📊 **Multiple Data Types** - Support for string, boolean, integer, JSON, and select options
-- 🚀 **Auto-Creation** - Automatically create settings on-the-fly with intelligent type detection
-- 🔌 **REST API** - Complete API for headless applications and JavaScript frameworks
-- 🔐 **Flexible Authentication** - Support for token, Sanctum, and Passport authentication
+- 🌍 **Multi-language Support** - Full multilingual support with automatic fallbacks
+- 🚀 **Multiple Data Types** - Support for string, boolean, integer, JSON, and select options
+- ⚡ **Auto-Creation** - Automatically create settings on-the-fly with intelligent type detection
+- 🌐 **REST API** - Complete API for headless applications and JavaScript frameworks
+- 🛡️ **Flexible Authentication** - Support for token, Sanctum, and Passport authentication
 - ⚡ **Cache Support** - Built-in caching to reduce database queries
 - 💾 **Database Agnostic** - Works with any Laravel-supported database
 
-## 📦 Installation
+## ⚙️ Installation
 
 ### Requirements
 - PHP 8.1 or higher
@@ -93,7 +93,7 @@ php artisan migrate
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="config"
 ```
 
-## 🎯 Basic Usage
+## 🛠️ Basic Usage
 
 ### Simple Settings Management
 
@@ -135,7 +135,7 @@ Settings::set('app_name', 'My App');                   // Creates string
 Settings::set('config', ['key' => 'value']);           // Creates JSON
 ```
 
-## 📊 Types of Settings
+## 🌐 Types of Settings
 
 The package supports two distinct types of settings:
 
@@ -172,7 +172,8 @@ For better control, create settings upfront using a seeder:
 // database/seeders/SettingsSeeder.php
 use Metalinked\LaravelSettingsKit\Models\Preference;
 
-public function run(): void {
+public function run(): void
+{
     $settings = [
         // Global unique settings
         [
@@ -331,7 +332,7 @@ $settings = Settings::allWithTranslations('ca');
 ]
 ```
 
-## 🔌 REST API
+## 🚀 REST API
 
 The package provides a complete REST API for managing settings, perfect for headless Laravel applications, mobile apps, or frontend JavaScript frameworks.
 
@@ -339,7 +340,7 @@ The package provides a complete REST API for managing settings, perfect for head
 
 The API supports both development and production environments with different setup requirements.
 
-#### ??? Development Setup (Quick Start)
+#### 🛠️ Development Setup (Quick Start)
 
 For local development and testing, you can bypass authentication entirely:
 
@@ -580,7 +581,7 @@ POST /api/settings-kit/email_notifications
 }
 ```
 
-**?? Complete API Documentation:** See `examples/API_USAGE.md` for detailed examples, error handling, and JavaScript integration examples.
+**📖 Complete API Documentation:** See `examples/API_USAGE.md` for detailed examples, error handling, and JavaScript integration examples.
 
 ## 🎨 Multilingual Interface Examples
 
@@ -658,7 +659,7 @@ Settings::forget('theme', $userId);
 
 The package uses a simple and efficient approach based on the setting type:
 
-### ?? Global Unique Settings (`is_user_customizable = false`)
+### 🌐 Global Unique Settings (`is_user_customizable = false`)
 
 These settings modify the default value directly and apply to everyone:
 
@@ -674,7 +675,7 @@ Settings::set('maintenance_mode', '1');  // Modifies default_value directly
 Settings::get('maintenance_mode');       // Returns '1' for everyone
 ```
 
-### ?? User Customizable Settings (`is_user_customizable = true`)
+### 👤 User Customizable Settings (`is_user_customizable = true`)
 
 These settings allow users to personalize their experience:
 
@@ -704,10 +705,10 @@ Settings::get('theme', 456);   // 'dark' (global default)
 
 ### Benefits of This Architecture
 
-- **? Performance**: Users read directly from `preferences` table unless they have custom values
-- **?? Clean Data**: `user_preferences` only contains actual user customizations
-- **?? Simple Logic**: Global changes update the default, user changes create personal preferences
-- **?? Data Integrity**: Clear separation between global and personal settings
+- **⚡ Performance**: Users read directly from `preferences` table unless they have custom values
+- **💡 Clean Data**: `user_preferences` only contains actual user customizations
+- **💡 Simple Logic**: Global changes update the default, user changes create personal preferences
+- **🔒 Data Integrity**: Clear separation between global and personal settings
 
 ## 🔧 Data Types
 
@@ -719,7 +720,7 @@ The package supports the following data types:
 - `json` - JSON objects/arrays
 - `select` - Predefined options (stored as JSON in options field)
 
-## 🚀 Advanced Features
+## � Advanced Features
 
 ### Data Architecture
 
@@ -996,7 +997,7 @@ SETTINGS_KIT_CACHE_ENABLED=false
 
 ### Common Issues
 
-#### ?? Authentication Problems
+#### 🔐 Authentication Problems
 
 **Symptom**: Getting 401/403 errors when accessing API endpoints
 
@@ -1015,7 +1016,7 @@ SETTINGS_KIT_API_TOKEN=your-secure-token
 SETTINGS_KIT_API_AUTH=sanctum
 ```
 
-#### ?? Settings Not Persisting
+#### 💾 Settings Not Persisting
 
 **Symptom**: Settings appear to save but revert after refresh
 
@@ -1042,7 +1043,7 @@ ls -la storage/framework/cache/
 - File permission issues
 - Wrong user model configuration
 
-#### ?? Auto-Creation Not Working
+#### 🤖 Auto-Creation Not Working
 
 **Symptom**: New settings aren't created automatically
 
@@ -1061,7 +1062,7 @@ Settings::setWithAutoCreate('new_setting', 'value');
 Settings::set('new_setting', 'value', $userId, true);
 ```
 
-#### ?? Performance Issues
+#### 🐌 Performance Issues
 
 **Symptom**: Slow settings retrieval or high database queries
 
@@ -1082,7 +1083,7 @@ $userSettings = collect(['theme', 'language', 'notifications'])
     ->mapWithKeys(fn($key) => [$key => Settings::get($key, $userId)]);
 ```
 
-#### ?? Multilingual Issues
+#### 🌍 Multilingual Issues
 
 **Symptom**: Translations not loading or fallback not working
 
@@ -1098,7 +1099,7 @@ Settings::addTranslations('setting_key', [
 Settings::label('setting_key', 'es');
 ```
 
-#### ?? Migration Problems
+#### 🔄 Migration Problems
 
 **Symptom**: Migration fails or foreign key constraints
 
