@@ -7,75 +7,166 @@
 
 A comprehensive Laravel package for managing global and user-specific settings with role-based permissions, multi-language support, auto-creation capabilities, and a complete REST API for headless applications.
 
-## Table of Contents
+## 🚀 Quick Start
 
-- [🚀 Features](#user-content--features)
-- [📋 Requirements](#user-content--requirements)
-- [⚙️ Installation](#user-content--installation)
-- [🛠️ Creating Settings](#user-content--creating-settings)
-- [⚡ Quick Start](#user-content--quick-start)
-- [🌍 Adding Translations](#user-content--adding-translations)
-- [🚀 REST API](#user-content--rest-api)
-- [🎨 Multilingual Interface Examples](#user-content--multilingual-interface-examples)
-- [📚 API Reference](#user-content--api-reference)
-- [🔄 Global Overrides vs Default Values](#user-content--global-overrides-vs-default-values)
-- [🔧 Data Types](#user-content--data-types)
-- [💡 Advanced Examples](#user-content--advanced-examples)
-- [🔧 Troubleshooting](#user-content--troubleshooting)
-- [🧪 Testing](#user-content--testing)
-- [🤝 Contributing](#user-content--contributing)
-- [🔒 Security](#user-content--security)
-- [📄 License](#user-content--license)
+Install the package and get started in minutes:
 
-## 🚀 Features
+```bash
+# Install the package
+composer require metalinked/laravel-settings-kit
+
+# Publish and run migrations
+php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="migrations"
+php artisan migrate
+```
+
+**Basic Usage:**
+```php
+use Metalinked\LaravelSettingsKit\Facades\Settings;
+
+// Get settings (with auto-creation if they don't exist)
+$siteName = Settings::get('site_name') ?? 'My App';
+$userTheme = Settings::get('theme', $userId) ?? 'light';
+
+// Set settings (auto-creates if needed)
+Settings::set('site_name', 'My Awesome App');           // Global setting
+Settings::set('theme', 'dark', $userId);                // User setting
+
+// Check boolean settings
+if (Settings::isEnabled('maintenance_mode')) {
+    // Show maintenance page
+}
+```
+
+**That's it!** The package automatically creates settings as you use them.
+
+## 📋 Table of Contents
+
+- [🚀 Quick Start](#-quick-start)
+- [✨ Features](#-features)
+- [⚙️ Installation](#️-installation)
+- [�️ Basic Usage](#️-basic-usage)
+- [🌐 Types of Settings](#-types-of-settings)
+- [� Multilingual Support](#-multilingual-support)
+- [� REST API](#-rest-api)
+- [� Advanced Features](#-advanced-features)
+- [🔧 Configuration](#-configuration)
+- [🔧 Troubleshooting](#-troubleshooting)
+- [🧪 Testing](#-testing)
+- [🤝 Contributing](#-contributing)
+- [📄 License](#-license)
+
+## ✨ Features
 
 - 🔧 **Global and User-specific Settings** - Manage both application-wide and individual user preferences
 - 👥 **Role-based Permissions** - Control which settings are visible/editable by user roles
-- 🌍 **Multi-language Support** - Full multilingual support with automatic fallbacks and translation management
+- 🌍 **Multi-language Support** - Full multilingual support with automatic fallbacks
 - 🚀 **Multiple Data Types** - Support for string, boolean, integer, JSON, and select options
-- ⚡ **Cache Support** - Built-in caching to reduce database queries
-- 🎨 **Clean API** - Simple and intuitive facade interface with auto-creation capabilities
-- 🔄 **Auto-Creation** - Automatically create settings on-the-fly with type detection
+- ⚡ **Auto-Creation** - Automatically create settings on-the-fly with intelligent type detection
 - 🌐 **REST API** - Complete API for headless applications and JavaScript frameworks
 - 🛡️ **Flexible Authentication** - Support for token, Sanctum, and Passport authentication
+- ⚡ **Cache Support** - Built-in caching to reduce database queries
 - 💾 **Database Agnostic** - Works with any Laravel-supported database
-
-## 📋 Requirements
-
-- PHP 8.1 or higher
-- Laravel 10.0 or higher
 
 ## ⚙️ Installation
 
-Install the package via Composer:
+### Requirements
+- PHP 8.1 or higher
+- Laravel 10.0 or higher
+
+### Step 1: Install Package
 
 ```bash
 composer require metalinked/laravel-settings-kit
 ```
 
-Publish and run the migrations:
+### Step 2: Run Migrations
 
 ```bash
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="migrations"
 php artisan migrate
 ```
 
-Optionally, publish the config file:
+### Step 3: Publish Config (Optional)
 
 ```bash
 php artisan vendor:publish --provider="Metalinked\LaravelSettingsKit\SettingsKitServiceProvider" --tag="config"
 ```
 
-## 🛠️ Creating Settings
+## 🛠️ Basic Usage
 
-The package supports two types of settings:
+### Simple Settings Management
 
-- **🌐 Global Unique Settings**: System-wide configurations that apply to everyone (e.g., `maintenance_mode`, `site_name`)
-- **👤 User Customizable Settings**: Settings with defaults that users can personalize (e.g., `theme`, `notifications_enabled`)
+```php
+use Metalinked\LaravelSettingsKit\Facades\Settings;
 
-### Using a Seeder (Recommended)
+// Get a setting (returns null if not found)
+$value = Settings::get('app_name');
 
-Create a seeder to define your settings:
+// Set a setting (auto-creates if it doesn't exist)
+Settings::set('app_name', 'My Application');
+
+// Get user-specific setting
+$userTheme = Settings::get('theme', $userId);
+
+// Set user-specific setting
+Settings::set('theme', 'dark', $userId);
+
+// Check if setting is enabled (boolean check)
+if (Settings::isEnabled('maintenance_mode')) {
+    abort(503, 'Under maintenance');
+}
+
+// Get all settings
+$allSettings = Settings::all();
+
+// Get settings by category
+$systemSettings = Settings::all(category: 'system');
+```
+
+### Auto-Creation with Type Detection
+
+The package automatically detects data types when creating settings:
+
+```php
+Settings::set('maintenance_mode', false);              // Creates boolean
+Settings::set('max_users', 100);                       // Creates integer  
+Settings::set('app_name', 'My App');                   // Creates string
+Settings::set('config', ['key' => 'value']);           // Creates JSON
+```
+
+## 🌐 Types of Settings
+
+The package supports two distinct types of settings:
+
+### Global Unique Settings
+Settings that apply to the entire application. When you change them, you're modifying the global default value.
+
+```php
+// Examples: maintenance_mode, site_name, max_upload_size
+Settings::set('maintenance_mode', true);    // Affects entire application
+Settings::set('site_name', 'My Site');      // Changes site name for everyone
+```
+
+### User Customizable Settings  
+Settings with global defaults that individual users can override.
+
+```php
+// Global default (affects all users who haven't customized)
+Settings::set('theme', 'light');            // Sets default theme to 'light'
+
+// User customization (only affects specific user)
+Settings::set('theme', 'dark', 123);        // User 123 prefers dark theme
+
+// Results:
+Settings::get('theme');                      // Returns 'light' (global default)
+Settings::get('theme', 123);                // Returns 'dark' (user's preference)
+Settings::get('theme', 456);                // Returns 'light' (inherits default)
+```
+
+### Creating Predefined Settings
+
+For better control, create settings upfront using a seeder:
 
 ```php
 // database/seeders/SettingsSeeder.php
@@ -84,44 +175,37 @@ use Metalinked\LaravelSettingsKit\Models\Preference;
 public function run(): void
 {
     $settings = [
-        // Global unique setting - when changed, modifies the default value directly
+        // Global unique settings
         [
             'key' => 'maintenance_mode',
             'type' => 'boolean',
             'default_value' => '0',
             'category' => 'system',
-            'is_user_customizable' => false, // Global unique
+            'is_user_customizable' => false,
         ],
         [
-            'key' => 'site_name',
+            'key' => 'site_name', 
             'type' => 'string',
             'default_value' => 'My Application',
             'category' => 'general',
-            'is_user_customizable' => false, // Global unique
+            'is_user_customizable' => false,
         ],
-        // User customizable settings - users can override the default
+        // User customizable settings
         [
             'key' => 'theme',
             'type' => 'select',
             'default_value' => 'light',
             'category' => 'appearance',
-            'options' => ['light', 'dark'],
-            'is_user_customizable' => true, // Users can customize
+            'options' => ['light', 'dark', 'auto'],
+            'is_user_customizable' => true,
         ],
         [
             'key' => 'notifications_enabled',
-            'type' => 'boolean',
+            'type' => 'boolean', 
             'default_value' => '1',
             'category' => 'preferences',
-            'is_user_customizable' => true, // Users can customize
+            'is_user_customizable' => true,
         ],
-        [
-            'key' => 'max_upload_size',
-            'type' => 'integer',
-            'default_value' => '2048',
-            'category' => 'files',
-            'is_user_customizable' => false, // Global unique
-        ]
     ];
 
     foreach ($settings as $setting) {
@@ -129,47 +213,6 @@ public function run(): void
     }
 }
 ```
-
-## ⚡ Quick Start
-
-### Understanding Setting Types
-
-**🌐 Global Unique Settings:**
-```php
-// When set without user ID, modifies the default value directly
-Settings::set('maintenance_mode', true);  // All users see maintenance mode
-Settings::set('site_name', 'New Name');   // Changes the site name for everyone
-
-// These settings cannot be personalized by users
-```
-
-**👤 User Customizable Settings:**
-```php
-// Default value that users inherit
-Settings::get('theme');           // Returns 'light' (default)
-Settings::get('theme', 123);      // Returns 'light' (user hasn't customized yet)
-
-// Change global default (affects all users who haven't customized)
-Settings::set('theme', 'dark');        // Modifies default_value to 'dark'
-Settings::get('theme');                 // Returns 'dark' (new default)
-Settings::get('theme', 456);            // Returns 'dark' (new default for all users)
-
-// User personalizes the setting (only then is UserPreference created)
-Settings::set('theme', 'custom', 123);  // Creates UserPreference for user 123
-Settings::get('theme', 123);             // Returns 'custom' (user's preference)
-Settings::get('theme', 456);             // Returns 'dark' (still global default)
-```
-
-### Basic Usage
-
-```php
-use Metalinked\LaravelSettingsKit\Facades\Settings;
-
-// Get a global setting (returns null if not found)
-$value = Settings::get('allow_comments');
-
-// Get a user-specific setting
-$value = Settings::get('email_notifications', $userId);
 
 // Set a global setting (throws exception if preference doesn't exist)
 Settings::set('allow_comments', true);
@@ -204,57 +247,57 @@ if (Settings::has('feature_enabled')) {
 }
 
 // Create setting only if it doesn't exist
-Settings::createIfNotExists('new_feature', [
-    'type' => 'boolean',
-    'default_value' => '0',
-    'category' => 'features'
-]);
-```
+## 🌍 Multilingual Support
 
-## 🌍 Adding Translations
+Add translations to make your settings interface multilingual:
 
-The package includes a powerful multilingual system that allows you to provide labels and descriptions for your settings in multiple languages:
+### Adding Translations
 
 ```php
-use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
+use Metalinked\LaravelSettingsKit\Facades\Settings;
 
-$preference = Preference::where('key', 'allow_comments')->first();
-
-// Add English translation
-PreferenceContent::create([
-    'preference_id' => $preference->id,
-    'locale' => 'en',
-    'label' => 'Allow Comments',
-    'description' => 'Enable or disable comments on posts',
-]);
-
-// Add Catalan translation
-PreferenceContent::create([
-    'preference_id' => $preference->id,
-    'locale' => 'ca',
-    'label' => 'Permetre Comentaris',
-    'description' => 'Activa o desactiva els comentaris a les publicacions',
-]);
-```
-
-### Creating Settings with Translations
-
-```php
-// Create setting with multiple translations at once
-Settings::createWithTranslations('newsletter_enabled', [
+// Create setting with translations
+Settings::createWithTranslations('notification_email', [
     'type' => 'boolean',
     'default_value' => '1',
-    'category' => 'marketing'
+    'category' => 'notifications',
 ], [
     'en' => [
-        'label' => 'Newsletter Subscription',
-        'description' => 'Enable newsletter signup form'
-    ],
-    'ca' => [
-        'label' => 'Subscripció al Butlletí',
-        'description' => 'Activa el formulari de subscripció al butlletí'
+        'title' => 'Email Notifications',
+        'description' => 'Receive notifications via email'
     ],
     'es' => [
+        'title' => 'Notificaciones por Email', 
+        'description' => 'Recibir notificaciones por correo electrónico'
+    ],
+    'ca' => [
+        'title' => 'Notificacions per Email',
+        'description' => 'Rebre notificacions per correu electrònic'
+    ]
+]);
+```
+
+### Using Translations
+
+```php
+// Get translated labels and descriptions
+$label = Settings::label('notification_email', 'es');          // "Notificaciones por Email"
+$description = Settings::description('notification_email', 'ca'); // "Rebre notificacions per correu electrònic"
+
+// Auto-fallback to English if translation missing
+$label = Settings::label('notification_email', 'fr');          // "Email Notifications" (fallback)
+```
+
+### Bulk Translation Management
+
+```php
+// Add translations to existing settings
+Settings::addTranslations('theme', [
+    'en' => ['title' => 'Theme', 'description' => 'Choose your preferred theme'],
+    'es' => ['title' => 'Tema', 'description' => 'Elige tu tema preferido'],
+    'ca' => ['title' => 'Tema', 'description' => 'Tria el teu tema preferit']
+]);
+```
         'label' => 'Suscripción al Boletín', 
         'description' => 'Habilita el formulario de suscripción al boletín'
     ]
@@ -304,55 +347,109 @@ SETTINGS_KIT_API_PREFIX=api/settings-kit
 
 With this setup, you can immediately use the API without any authentication:
 
-```bash
-# Works immediately in development
-curl http://your-local-app.test/api/settings-kit/global/site_name
-```
+## 🚀 REST API
 
-#### 🔒 Production Setup
+The package provides a complete REST API for headless applications and JavaScript frameworks.
 
-For production environments, configure proper authentication:
+### API Configuration
 
-**Token Authentication** (Simple):
 ```env
 # Enable API
 SETTINGS_KIT_API_ENABLED=true
 
-# Disable development bypass (or remove the line)
-SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+# Development (no authentication)
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
 
-# Authentication mode
+# Production (require authentication)
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
 SETTINGS_KIT_API_AUTH=token
-
-# Secure API token
-SETTINGS_KIT_API_TOKEN=your-secure-random-token-here
-
-# Auto-create settings (optional)
-SETTINGS_KIT_API_AUTO_CREATE=false
+SETTINGS_KIT_API_TOKEN=your-secure-token
 ```
 
-**Sanctum Authentication** (User-based):
-```env
-SETTINGS_KIT_API_ENABLED=true
-SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
-SETTINGS_KIT_API_AUTH=sanctum
-```
+### Global Settings Endpoints
 
-**Passport Authentication** (OAuth2):
-```env
-SETTINGS_KIT_API_ENABLED=true
-SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
-SETTINGS_KIT_API_AUTH=passport
-```
-
-### API Authentication
-
-The API supports multiple authentication methods:
-
-**Token Authentication** (Simple):
 ```bash
-curl -H "Authorization: Bearer your-secure-random-token-here" \
-     http://your-app.com/api/settings-kit
+# Get all global settings
+GET /api/settings-kit/global
+
+# Get specific global setting
+GET /api/settings-kit/global/site_name
+
+# Set global setting
+POST /api/settings-kit/global/site_name
+{
+    "value": "My New Site Name"
+}
+
+# Update global setting
+PUT /api/settings-kit/global/maintenance_mode
+{
+    "value": true
+}
+
+# Reset global setting to default
+DELETE /api/settings-kit/global/site_name
+```
+
+### User Settings Endpoints
+
+```bash
+# Get user's settings
+GET /api/settings-kit/user?user_id=123
+
+# Get specific user setting
+GET /api/settings-kit/user/theme?user_id=123
+
+# Set user setting
+POST /api/settings-kit/user/theme?user_id=123
+{
+    "value": "dark"
+}
+
+# Reset user setting (falls back to global default)
+DELETE /api/settings-kit/user/theme?user_id=123
+```
+
+### API Response Format
+
+```json
+{
+    "success": true,
+    "data": {
+        "theme": {
+            "value": "dark",
+            "type": "select",
+            "category": "appearance",
+            "required": false,
+            "options": ["light", "dark", "auto"],
+            "label": "Theme",
+            "description": "Choose your preferred theme",
+            "key": "theme"
+        }
+    },
+    "meta": {
+        "count": 1,
+        "locale": "en",
+        "role": null,
+        "user_id": 123,
+        "category": "appearance"
+    }
+}
+```
+
+### Authentication Examples
+
+```bash
+# Development (no token required)
+curl http://localhost/api/settings-kit/global/site_name
+
+# Production with token
+curl -H "Authorization: Bearer your-token" \
+     https://yourapp.com/api/settings-kit/global/site_name
+
+# With Sanctum
+curl -H "Authorization: Bearer sanctum-token" \
+     https://yourapp.com/api/settings-kit/user/theme?user_id=123
 ```
 
 **Sanctum Authentication** (User-based):
@@ -604,12 +701,19 @@ The package supports the following data types:
 - `json` - JSON objects/arrays
 - `select` - Predefined options (stored as JSON in options field)
 
-## 💡 Advanced Examples
+## � Advanced Features
 
-### User Settings Interface
+### Data Architecture
 
+The package uses an efficient architecture that minimizes database queries:
+- **Global Settings**: Stored in `preferences.default_value` - one row per setting
+- **User Customizations**: Only stored in `user_preferences` when users actually customize settings
+- **Multilingual**: Translations stored in `preference_contents` with fallback to default locale
+
+### Controller Examples
+
+#### User Settings Panel
 ```php
-// Controller for user settings
 class UserSettingsController extends Controller 
 {
     public function index()
@@ -637,116 +741,397 @@ class UserSettingsController extends Controller
 }
 ```
 
-### Admin Global Settings
-
+#### Admin Global Settings
 ```php
-// Controller for admin global settings
 class AdminSettingsController extends Controller
 {
     public function update(Request $request)
     {
-        // Set global settings (modifies default values directly)
+        // Global settings (affects all users)
         Settings::set('maintenance_mode', $request->has('maintenance_mode'));
         Settings::set('max_users', $request->input('max_users', 1000));
         
-        // Auto-create settings that might not exist
+        // Auto-create settings
         Settings::setWithAutoCreate('new_feature_flag', $request->has('new_feature'));
         
         return redirect()->back()->with('success', 'Global settings updated!');
     }
+}
+```
 
-    public function reset($key)
+### Advanced Data Types
+
+#### JSON Settings
+```php
+// Store complex data structures
+Settings::set('app_config', [
+    'features' => ['darkMode', 'notifications'],
+    'limits' => ['users' => 1000, 'storage' => '10GB'],
+    'integrations' => ['stripe' => true, 'paypal' => false]
+]);
+
+$config = Settings::get('app_config'); // Returns array
+```
+
+#### Select Options
+```php
+// Create setting with predefined options
+Preference::create([
+    'key' => 'notification_frequency',
+    'default_value' => 'daily',
+    'data_type' => 'select',
+    'options' => json_encode(['hourly', 'daily', 'weekly', 'never'])
+]);
+```
+
+### Bulk Operations
+
+```php
+// Set multiple settings at once
+$bulkSettings = [
+    'app_name' => 'My Application',
+    'maintenance_mode' => false,
+    'max_file_size' => 2048,
+    'allowed_domains' => ['example.com', 'app.com']
+];
+
+foreach ($bulkSettings as $key => $value) {
+    Settings::setWithAutoCreate($key, $value);
+}
+```
+
+### Integration Examples
+
+#### Laravel Livewire
+```php
+class SettingsComponent extends Component
+{
+    public $theme;
+    public $notifications;
+    
+    public function mount()
     {
-        // Reset to original default value
-        Settings::forget($key);
+        $userId = auth()->id();
+        $this->theme = Settings::get('theme', $userId);
+        $this->notifications = Settings::get('email_notifications', $userId);
+    }
+    
+    public function save()
+    {
+        $userId = auth()->id();
+        Settings::set('theme', $this->theme, $userId);
+        Settings::set('email_notifications', $this->notifications, $userId);
         
-        return redirect()->back()->with('success', "Setting '{$key}' reset to default!");
+        $this->emit('settingsSaved');
+    }
+}
+```
+
+#### Vue.js Frontend
+```javascript
+// API integration example
+export class SettingsAPI {
+    async getUserSettings(userId) {
+        const response = await fetch(`/api/settings-kit/user?user_id=${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        return response.json();
+    }
+    
+    async updateSetting(key, value, userId = null) {
+        const endpoint = userId ? `/api/settings-kit/user/${key}` : `/api/settings-kit/global/${key}`;
+        const body = userId ? { value, user_id: userId } : { value };
+        
+        return fetch(endpoint, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+        });
+    }
+}
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+The package can be configured via your `.env` file:
+
+```env
+# API Configuration
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+SETTINGS_KIT_API_AUTH=token
+SETTINGS_KIT_API_TOKEN=your-secure-api-token
+SETTINGS_KIT_API_AUTO_CREATE=false
+
+# Caching
+SETTINGS_KIT_CACHE_ENABLED=true
+SETTINGS_KIT_CACHE_TTL=3600
+
+# Routes
+SETTINGS_KIT_ROUTES_PREFIX=api/settings-kit
+SETTINGS_KIT_ROUTES_MIDDLEWARE=api,auth:sanctum
+
+# User Model
+SETTINGS_KIT_USER_MODEL=App\Models\User
+```
+
+### Configuration File
+
+Publish the configuration file to customize advanced settings:
+
+```bash
+php artisan vendor:publish --tag=settings-kit-config
+```
+
+This creates `config/settings-kit.php` with the following options:
+
+```php
+return [
+    'api' => [
+        'enabled' => env('SETTINGS_KIT_API_ENABLED', true),
+        'auth' => env('SETTINGS_KIT_API_AUTH', 'token'),
+        'token' => env('SETTINGS_KIT_API_TOKEN', null),
+        'auto_create' => env('SETTINGS_KIT_API_AUTO_CREATE', false),
+        'disable_auth_dev' => env('SETTINGS_KIT_API_DISABLE_AUTH_DEV', false),
+    ],
+    
+    'cache' => [
+        'enabled' => env('SETTINGS_KIT_CACHE_ENABLED', true),
+        'ttl' => env('SETTINGS_KIT_CACHE_TTL', 3600),
+        'prefix' => 'settings_kit',
+    ],
+    
+    'routes' => [
+        'prefix' => env('SETTINGS_KIT_ROUTES_PREFIX', 'api/settings-kit'),
+        'middleware' => ['api', 'auth:sanctum'],
+    ],
+    
+    'models' => [
+        'user' => env('SETTINGS_KIT_USER_MODEL', 'App\Models\User'),
+    ],
+];
+```
+
+### Authentication Options
+
+#### 1. Token Authentication (Recommended for APIs)
+```env
+SETTINGS_KIT_API_AUTH=token
+SETTINGS_KIT_API_TOKEN=your-secure-token
+```
+
+#### 2. Sanctum Authentication (For SPAs)
+```env
+SETTINGS_KIT_API_AUTH=sanctum
+```
+
+#### 3. Passport Authentication (For OAuth2)
+```env
+SETTINGS_KIT_API_AUTH=passport
+```
+
+#### 4. Development Bypass (Local/Testing Only)
+```env
+APP_ENV=local
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
+```
+
+### Custom Middleware
+
+You can customize the middleware stack:
+
+```php
+// In config/settings-kit.php
+'routes' => [
+    'middleware' => ['api', 'auth:sanctum', 'custom.middleware'],
+],
+```
+
+### Caching Configuration
+
+```env
+# Redis caching (recommended for production)
+CACHE_DRIVER=redis
+SETTINGS_KIT_CACHE_ENABLED=true
+SETTINGS_KIT_CACHE_TTL=3600  # 1 hour
+
+# File caching (development)
+CACHE_DRIVER=file
+SETTINGS_KIT_CACHE_ENABLED=true
+SETTINGS_KIT_CACHE_TTL=1800  # 30 minutes
+
+# Disable caching (not recommended)
+SETTINGS_KIT_CACHE_ENABLED=false
+```
+            body: JSON.stringify(body)
+        });
     }
 }
 ```
 
 ## 🔧 Troubleshooting
 
-### API Authentication Issues
+### Common Issues
 
-**Problem**: Getting 401/403 errors when accessing API endpoints in development
+#### 🔐 Authentication Problems
 
-**Solution**: Enable development authentication bypass:
-```env
-SETTINGS_KIT_API_ENABLED=true
-SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
-```
-
-**Problem**: API not working in production with authentication
-
-**Solution**: Ensure proper authentication setup:
-```env
-# Check these settings
-SETTINGS_KIT_API_ENABLED=true
-SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
-SETTINGS_KIT_API_AUTH=token
-SETTINGS_KIT_API_TOKEN=your-secure-token
-```
-
-### Settings Not Persisting
-
-**Problem**: Settings appear to save but don't persist
-
-**Possible Causes**:
-1. Cache is enabled but not working properly
-2. Database migration not run
-3. Wrong user model configuration
+**Symptom**: Getting 401/403 errors when accessing API endpoints
 
 **Solutions**:
-```bash
-# Clear cache
-php artisan cache:clear
+```env
+# For development/testing (bypass authentication)
+APP_ENV=local
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
 
-# Check migrations
-php artisan migrate:status
+# For production (proper token auth)
+SETTINGS_KIT_API_ENABLED=true
+SETTINGS_KIT_API_AUTH=token
+SETTINGS_KIT_API_TOKEN=your-secure-token
 
-# Test database connection
-php artisan tinker
->>> \Metalinked\LaravelSettingsKit\Models\Preference::count()
+# For Sanctum authentication
+SETTINGS_KIT_API_AUTH=sanctum
 ```
 
-### Auto-Creation Not Working
+#### 💾 Settings Not Persisting
 
-**Problem**: Settings aren't being created automatically
+**Symptom**: Settings appear to save but revert after refresh
+
+**Debugging Steps**:
+```bash
+# 1. Check database connection
+php artisan tinker
+>>> \Metalinked\LaravelSettingsKit\Models\Preference::count()
+
+# 2. Verify migrations
+php artisan migrate:status
+
+# 3. Clear cache
+php artisan cache:clear
+php artisan config:clear
+
+# 4. Check file permissions (if using file cache)
+ls -la storage/framework/cache/
+```
+
+**Common Causes**:
+- Database migration not run
+- Cache driver misconfiguration
+- File permission issues
+- Wrong user model configuration
+
+#### 🤖 Auto-Creation Not Working
+
+**Symptom**: New settings aren't created automatically
 
 **Check Configuration**:
 ```env
-# For API auto-creation
+# Global auto-creation (affects all API requests)
 SETTINGS_KIT_API_AUTO_CREATE=true
-
-# In your seeder/code
-Settings::set('new_setting', 'value', $userId); // Auto-creates with is_user_customizable=true
-Settings::set('global_setting', 'value');       // Auto-creates with is_user_customizable=false
 ```
 
-### Performance Issues
+**Manual Auto-Creation**:
+```php
+// Use auto-create methods
+Settings::setWithAutoCreate('new_setting', 'value');
 
-**Problem**: Slow settings retrieval
+// Or with parameter
+Settings::set('new_setting', 'value', $userId, true);
+```
 
-**Solutions**:
+#### 🐌 Performance Issues
+
+**Symptom**: Slow settings retrieval or high database queries
+
+**Optimization**:
 ```env
 # Enable caching
 SETTINGS_KIT_CACHE_ENABLED=true
 SETTINGS_KIT_CACHE_TTL=3600
+
+# Use Redis for better performance
+CACHE_DRIVER=redis
 ```
 
-### Environment Detection Issues
+**Code Optimization**:
+```php
+// Avoid N+1 queries - batch load settings
+$userSettings = collect(['theme', 'language', 'notifications'])
+    ->mapWithKeys(fn($key) => [$key => Settings::get($key, $userId)]);
+```
 
-**Problem**: Development bypass not working
+#### 🌍 Multilingual Issues
 
-**Check**: Ensure your app environment is set to 'local' or 'testing':
+**Symptom**: Translations not loading or fallback not working
+
+**Debugging**:
+```php
+// Check available locales
+Settings::addTranslations('setting_key', [
+    'en' => ['label' => 'English Label'],
+    'es' => ['label' => 'Spanish Label'],
+]);
+
+// Test specific locale
+Settings::label('setting_key', 'es');
+```
+
+#### 🔄 Migration Problems
+
+**Symptom**: Migration fails or foreign key constraints
+
+**Solutions**:
+```bash
+# Check migration order
+php artisan migrate:status
+
+# Rollback and re-run if needed
+php artisan migrate:rollback --step=3
+php artisan migrate
+
+# Fix foreign key issues
+php artisan migrate:fresh --seed
+```
+
+### Environment-Specific Issues
+
+#### Development Environment
 ```env
 APP_ENV=local
-# or
-APP_ENV=testing
+APP_DEBUG=true
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=true
+CACHE_DRIVER=file
 ```
 
-The bypass only works in these environments for security.
+#### Production Environment
+```env
+APP_ENV=production
+APP_DEBUG=false
+SETTINGS_KIT_API_DISABLE_AUTH_DEV=false
+SETTINGS_KIT_API_TOKEN=secure-production-token
+CACHE_DRIVER=redis
+```
+
+### Debug Commands
+
+```bash
+# Check package status
+php artisan route:list | grep settings-kit
+
+# Test API endpoints
+curl -H "Authorization: Bearer your-token" \
+     http://localhost/api/settings-kit
+
+# Verify database structure
+php artisan tinker
+>>> Schema::hasTable('preferences')
+>>> Schema::hasTable('preference_contents')
+>>> Schema::hasTable('user_preferences')
+```
 
 ## 🧪 Testing
 
