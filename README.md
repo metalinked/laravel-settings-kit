@@ -339,7 +339,7 @@ The package provides a complete REST API for managing settings, perfect for head
 
 The API supports both development and production environments with different setup requirements.
 
-#### ??? Development Setup (Quick Start)
+#### 🛠️ Development Setup (Quick Start)
 
 For local development and testing, you can bypass authentication entirely:
 
@@ -658,7 +658,7 @@ Settings::forget('theme', $userId);
 
 The package uses a simple and efficient approach based on the setting type:
 
-### ?? Global Unique Settings (`is_user_customizable = false`)
+### 🌐 Global Unique Settings (`is_user_customizable = false`)
 
 These settings modify the default value directly and apply to everyone:
 
@@ -674,7 +674,7 @@ Settings::set('maintenance_mode', '1');  // Modifies default_value directly
 Settings::get('maintenance_mode');       // Returns '1' for everyone
 ```
 
-### ?? User Customizable Settings (`is_user_customizable = true`)
+### 👤 User Customizable Settings (`is_user_customizable = true`)
 
 These settings allow users to personalize their experience:
 
@@ -704,10 +704,10 @@ Settings::get('theme', 456);   // 'dark' (global default)
 
 ### Benefits of This Architecture
 
-- **? Performance**: Users read directly from `preferences` table unless they have custom values
-- **?? Clean Data**: `user_preferences` only contains actual user customizations
-- **?? Simple Logic**: Global changes update the default, user changes create personal preferences
-- **?? Data Integrity**: Clear separation between global and personal settings
+- **⚡ Performance**: Users read directly from `preferences` table unless they have custom values
+- **🧹 Clean Data**: `user_preferences` only contains actual user customizations
+- **💡 Simple Logic**: Global changes update the default, user changes create personal preferences
+- **🔒 Data Integrity**: Clear separation between global and personal settings
 
 ## 🔧 Data Types
 
@@ -732,10 +732,8 @@ The package uses an efficient architecture that minimizes database queries:
 
 #### User Settings Panel
 ```php
-class UserSettingsController extends Controller 
-{
-    public function index()
-    {
+class UserSettingsController extends Controller {
+    public function index() {
         $userId = auth()->id();
         $settings = [
             'email_notifications' => Settings::get('email_notifications', $userId),
@@ -746,8 +744,7 @@ class UserSettingsController extends Controller
         return view('settings.user', compact('settings'));
     }
 
-    public function update(Request $request)
-    {
+    public function update(Request $request) {
         $userId = auth()->id();
         
         foreach ($request->only(['email_notifications', 'theme', 'language']) as $key => $value) {
@@ -761,10 +758,8 @@ class UserSettingsController extends Controller
 
 #### Admin Global Settings
 ```php
-class AdminSettingsController extends Controller
-{
-    public function update(Request $request)
-    {
+class AdminSettingsController extends Controller {
+    public function update(Request $request) {
         // Global settings (affects all users)
         Settings::set('maintenance_mode', $request->has('maintenance_mode'));
         Settings::set('max_users', $request->input('max_users', 1000));
@@ -822,20 +817,17 @@ foreach ($bulkSettings as $key => $value) {
 
 #### Laravel Livewire
 ```php
-class SettingsComponent extends Component
-{
+class SettingsComponent extends Component {
     public $theme;
     public $notifications;
     
-    public function mount()
-    {
+    public function mount() {
         $userId = auth()->id();
         $this->theme = Settings::get('theme', $userId);
         $this->notifications = Settings::get('email_notifications', $userId);
     }
     
-    public function save()
-    {
+    public function save() {
         $userId = auth()->id();
         Settings::set('theme', $this->theme, $userId);
         Settings::set('email_notifications', $this->notifications, $userId);
@@ -986,17 +978,12 @@ SETTINGS_KIT_CACHE_TTL=1800  # 30 minutes
 # Disable caching (not recommended)
 SETTINGS_KIT_CACHE_ENABLED=false
 ```
-            body: JSON.stringify(body)
-        });
-    }
-}
-```
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### ?? Authentication Problems
+#### 🔐 Authentication Problems
 
 **Symptom**: Getting 401/403 errors when accessing API endpoints
 
@@ -1015,7 +1002,7 @@ SETTINGS_KIT_API_TOKEN=your-secure-token
 SETTINGS_KIT_API_AUTH=sanctum
 ```
 
-#### ?? Settings Not Persisting
+#### 💾 Settings Not Persisting
 
 **Symptom**: Settings appear to save but revert after refresh
 
@@ -1042,7 +1029,7 @@ ls -la storage/framework/cache/
 - File permission issues
 - Wrong user model configuration
 
-#### ?? Auto-Creation Not Working
+#### 🤖 Auto-Creation Not Working
 
 **Symptom**: New settings aren't created automatically
 
@@ -1061,7 +1048,7 @@ Settings::setWithAutoCreate('new_setting', 'value');
 Settings::set('new_setting', 'value', $userId, true);
 ```
 
-#### ?? Performance Issues
+#### 🐌 Performance Issues
 
 **Symptom**: Slow settings retrieval or high database queries
 
@@ -1082,7 +1069,7 @@ $userSettings = collect(['theme', 'language', 'notifications'])
     ->mapWithKeys(fn($key) => [$key => Settings::get($key, $userId)]);
 ```
 
-#### ?? Multilingual Issues
+#### 🌍 Multilingual Issues
 
 **Symptom**: Translations not loading or fallback not working
 
@@ -1098,7 +1085,7 @@ Settings::addTranslations('setting_key', [
 Settings::label('setting_key', 'es');
 ```
 
-#### ?? Migration Problems
+#### 🔄 Migration Problems
 
 **Symptom**: Migration fails or foreign key constraints
 
