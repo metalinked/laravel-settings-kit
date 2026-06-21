@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.0...v1.2.1) (2026-06-21)
+
+
+### Miscellaneous Chores
+
+* update package description to match README ([237a456](https://github.com/metalinked/laravel-settings-kit/commit/237a45642cccf7353a5f97815653a6791dd020d1))
+
 ## [1.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.1.0...v1.2.0) (2026-06-21)
 
 
