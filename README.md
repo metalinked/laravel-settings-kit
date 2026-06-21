@@ -409,4 +409,4 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## License
 
-The MIT License. See [LICENSE.md](LICENSE.md) for details.
+MIT © [Metalinked](https://github.com/metalinked)
