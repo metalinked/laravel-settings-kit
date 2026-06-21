@@ -9,15 +9,29 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+    continue-on-error: ${{ matrix.laravel-version == '13.*' }}
+
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        php-version: ['8.1', '8.2', '8.3']
-        laravel-version: ['9.*', '10.*', '11.*']
+        php-version: ['8.1', '8.2', '8.3', '8.4']
+        laravel-version: ['9.*', '10.*', '11.*', '12.*', '13.*']
         exclude:
+          # L11+ requires PHP 8.2+
           - php-version: '8.1'
             laravel-version: '11.*'
+          - php-version: '8.1'
+            laravel-version: '12.*'
+          - php-version: '8.1'
+            laravel-version: '13.*'
+          # L13 targets PHP 8.3+
+          - php-version: '8.2'
+            laravel-version: '13.*'
+          # Skip old Laravel on newest PHP to keep the matrix manageable
+          - php-version: '8.4'
+            laravel-version: '9.*'
+          - php-version: '8.4'
+            laravel-version: '10.*'
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 

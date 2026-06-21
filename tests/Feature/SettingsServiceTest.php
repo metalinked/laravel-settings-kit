@@ -2,6 +2,8 @@
 
 namespace Metalinked\LaravelSettingsKit\Tests\Feature;
 
+use Illuminate\Support\Facades\Event;
+use Metalinked\LaravelSettingsKit\Events\SettingUpdated;
 use Metalinked\LaravelSettingsKit\Facades\Settings;
 use Metalinked\LaravelSettingsKit\Models\Preference;
 use Metalinked\LaravelSettingsKit\Models\PreferenceContent;
@@ -500,15 +502,329 @@ class SettingsServiceTest extends TestCase {
         $userId = 1;
         $key = 'user_theme';
 
-        // Ensure the setting does not exist
         $this->assertNull(\Metalinked\LaravelSettingsKit\Models\Preference::where('key', $key)->first());
 
-        // Set with userId and autoCreate
         \Metalinked\LaravelSettingsKit\Facades\Settings::set($key, 'dark', $userId, true);
 
-        // Check that it was created with is_user_customizable = true
         $preference = \Metalinked\LaravelSettingsKit\Models\Preference::where('key', $key)->first();
         $this->assertNotNull($preference);
         $this->assertTrue($preference->is_user_customizable);
+    }
+
+    public function test_get_multiple_settings() {
+        Preference::create(['key' => 'multi_a', 'type' => 'string', 'default_value' => 'alpha']);
+        Preference::create(['key' => 'multi_b', 'type' => 'integer', 'default_value' => '42']);
+        Preference::create(['key' => 'multi_c', 'type' => 'boolean', 'default_value' => '1']);
+
+        $result = Settings::getMultiple(['multi_a', 'multi_b', 'multi_c', 'nonexistent']);
+
+        $this->assertEquals('alpha', $result['multi_a']);
+        $this->assertEquals(42, $result['multi_b']);
+        $this->assertTrue($result['multi_c']);
+        $this->assertNull($result['nonexistent']);
+    }
+
+    public function test_get_multiple_with_user_override() {
+        Preference::create(['key' => 'multi_user', 'type' => 'string', 'default_value' => 'global', 'is_user_customizable' => true]);
+
+        Settings::set('multi_user', 'personal', 7);
+
+        $result = Settings::getMultiple(['multi_user'], 7);
+        $this->assertEquals('personal', $result['multi_user']);
+
+        $result = Settings::getMultiple(['multi_user']);
+        $this->assertEquals('global', $result['multi_user']);
+    }
+
+    public function test_remember_returns_existing_value() {
+        Preference::create(['key' => 'existing_key', 'type' => 'string', 'default_value' => 'stored']);
+
+        $value = Settings::remember('existing_key', 'fallback');
+
+        $this->assertEquals('stored', $value);
+        $this->assertEquals('string', Preference::where('key', 'existing_key')->first()->type);
+    }
+
+    public function test_remember_creates_and_returns_default_when_missing() {
+        $this->assertFalse(Settings::has('new_remember_key'));
+
+        $value = Settings::remember('new_remember_key', 'created_default');
+
+        $this->assertEquals('created_default', $value);
+        $this->assertTrue(Settings::has('new_remember_key'));
+        $this->assertEquals('created_default', Settings::get('new_remember_key'));
+    }
+
+    public function test_delete_removes_preference_and_cascades() {
+        $preference = Preference::create([
+            'key' => 'to_delete',
+            'type' => 'string',
+            'default_value' => 'bye',
+            'is_user_customizable' => true,
+        ]);
+        Settings::set('to_delete', 'custom', 1);
+
+        $this->assertTrue(Settings::delete('to_delete'));
+        $this->assertFalse(Settings::has('to_delete'));
+        $this->assertEquals(0, \Metalinked\LaravelSettingsKit\Models\UserPreference::where('preference_id', $preference->id)->count());
+    }
+
+    public function test_delete_returns_false_for_nonexistent_key() {
+        $this->assertFalse(Settings::delete('does_not_exist'));
+    }
+
+    public function test_count_returns_total_settings() {
+        Preference::create(['key' => 'count_a', 'type' => 'string', 'default_value' => 'x', 'category' => 'cat1']);
+        Preference::create(['key' => 'count_b', 'type' => 'string', 'default_value' => 'y', 'category' => 'cat2']);
+        Preference::create(['key' => 'count_c', 'type' => 'string', 'default_value' => 'z', 'category' => 'cat1']);
+
+        $this->assertEquals(3, Settings::count());
+        $this->assertEquals(2, Settings::count('cat1'));
+        $this->assertEquals(1, Settings::count('cat2'));
+    }
+
+    public function test_all_supports_category_filter() {
+        Preference::create(['key' => 'sys_setting', 'type' => 'string', 'default_value' => 'x', 'category' => 'system']);
+        Preference::create(['key' => 'gen_setting', 'type' => 'string', 'default_value' => 'y', 'category' => 'general']);
+
+        $system = Settings::all(null, null, 'system');
+
+        $this->assertArrayHasKey('sys_setting', $system);
+        $this->assertArrayNotHasKey('gen_setting', $system);
+    }
+
+    public function test_set_global_stores_prepared_value() {
+        Preference::create(['key' => 'bool_global', 'type' => 'boolean', 'default_value' => '0']);
+
+        Settings::set('bool_global', true);
+
+        $stored = Preference::where('key', 'bool_global')->first();
+        $this->assertEquals('1', $stored->default_value);
+
+        Settings::set('bool_global', false);
+        $stored->refresh();
+        $this->assertEquals('0', $stored->default_value);
+    }
+
+    public function test_set_dispatches_setting_updated_event() {
+        Event::fake();
+
+        Preference::create(['key' => 'event_setting', 'type' => 'string', 'default_value' => 'old']);
+
+        Settings::set('event_setting', 'new_value');
+
+        Event::assertDispatched(SettingUpdated::class, function ($event) {
+            return $event->key === 'event_setting'
+                && $event->value === 'new_value'
+                && $event->userId === null;
+        });
+    }
+
+    public function test_set_user_dispatches_setting_updated_event_with_user_id() {
+        Event::fake();
+
+        Preference::create(['key' => 'user_event', 'type' => 'string', 'default_value' => 'default', 'is_user_customizable' => true]);
+
+        Settings::set('user_event', 'user_value', 42);
+
+        Event::assertDispatched(SettingUpdated::class, function ($event) {
+            return $event->key === 'user_event'
+                && $event->value === 'user_value'
+                && $event->userId === 42;
+        });
+    }
+
+    public function test_forget_resets_user_value_to_global_default() {
+        Preference::create(['key' => 'forget_test', 'type' => 'string', 'default_value' => 'default', 'is_user_customizable' => true]);
+        Settings::set('forget_test', 'custom', 5);
+
+        $this->assertEquals('custom', Settings::get('forget_test', 5));
+
+        Settings::forget('forget_test', 5);
+
+        $this->assertEquals('default', Settings::get('forget_test', 5));
+    }
+
+    public function test_forget_without_user_id_has_no_effect() {
+        Preference::create(['key' => 'global_forget', 'type' => 'string', 'default_value' => 'value']);
+
+        Settings::forget('global_forget');
+
+        $this->assertEquals('value', Settings::get('global_forget'));
+    }
+
+    public function test_cannot_set_null_as_user_override() {
+        Preference::create(['key' => 'null_test', 'type' => 'string', 'default_value' => 'default', 'is_user_customizable' => true]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Cannot store null");
+
+        Settings::set('null_test', null, 1);
+    }
+
+    public function test_select_validation_rejects_invalid_value() {
+        Preference::create([
+            'key' => 'select_test',
+            'type' => 'select',
+            'default_value' => 'light',
+            'options' => ['light', 'dark', 'auto'],
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid value for select setting");
+
+        Settings::set('select_test', 'blue');
+    }
+
+    public function test_select_validation_allows_valid_value() {
+        Preference::create([
+            'key' => 'select_valid',
+            'type' => 'select',
+            'default_value' => 'light',
+            'options' => ['light', 'dark', 'auto'],
+        ]);
+
+        Settings::set('select_valid', 'dark');
+        $this->assertEquals('dark', Settings::get('select_valid'));
+    }
+
+    public function test_forget_dispatches_setting_updated_event() {
+        Event::fake();
+
+        Preference::create(['key' => 'forget_event', 'type' => 'string', 'default_value' => 'x', 'is_user_customizable' => true]);
+        Settings::set('forget_event', 'custom', 5);
+
+        Settings::forget('forget_event', 5);
+
+        Event::assertDispatched(SettingUpdated::class, function ($event) {
+            return $event->key === 'forget_event' && $event->value === null && $event->userId === 5;
+        });
+    }
+
+    public function test_forget_without_user_dispatches_no_event() {
+        Event::fake();
+
+        Preference::create(['key' => 'forget_no_event', 'type' => 'string', 'default_value' => 'x']);
+
+        Settings::forget('forget_no_event');
+
+        Event::assertNotDispatched(SettingUpdated::class);
+    }
+
+    public function test_set_multiple_updates_several_settings() {
+        Preference::create(['key' => 'batch_a', 'type' => 'string', 'default_value' => 'old', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'batch_b', 'type' => 'integer', 'default_value' => '0', 'is_user_customizable' => true]);
+
+        Settings::setMultiple(['batch_a' => 'new', 'batch_b' => 42], 1);
+
+        $this->assertEquals('new', Settings::get('batch_a', 1));
+        $this->assertEquals(42, Settings::get('batch_b', 1));
+    }
+
+    public function test_all_for_user_returns_resolved_values_with_override_flag() {
+        Preference::create(['key' => 'user_pref_a', 'type' => 'string', 'default_value' => 'global_a', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'user_pref_b', 'type' => 'string', 'default_value' => 'global_b', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'non_customizable', 'type' => 'string', 'default_value' => 'x', 'is_user_customizable' => false]);
+
+        Settings::set('user_pref_a', 'custom_a', 7);
+
+        $result = Settings::allForUser(7);
+
+        // Only user-customisable settings appear
+        $this->assertArrayHasKey('user_pref_a', $result);
+        $this->assertArrayHasKey('user_pref_b', $result);
+        $this->assertArrayNotHasKey('non_customizable', $result);
+
+        // Overridden setting
+        $this->assertEquals('custom_a', $result['user_pref_a']['value']);
+        $this->assertTrue($result['user_pref_a']['is_overridden']);
+
+        // Non-overridden falls back to global default
+        $this->assertEquals('global_b', $result['user_pref_b']['value']);
+        $this->assertFalse($result['user_pref_b']['is_overridden']);
+    }
+
+    public function test_get_user_overrides_returns_only_overridden_settings() {
+        Preference::create(['key' => 'override_a', 'type' => 'string', 'default_value' => 'default', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'override_b', 'type' => 'string', 'default_value' => 'default', 'is_user_customizable' => true]);
+
+        Settings::set('override_a', 'custom', 3);
+
+        $overrides = Settings::getUserOverrides(3);
+
+        $this->assertArrayHasKey('override_a', $overrides);
+        $this->assertEquals('custom', $overrides['override_a']);
+        $this->assertArrayNotHasKey('override_b', $overrides);
+    }
+
+    public function test_forget_all_removes_all_user_overrides() {
+        Preference::create(['key' => 'fa_a', 'type' => 'string', 'default_value' => 'global', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'fa_b', 'type' => 'string', 'default_value' => 'global', 'is_user_customizable' => true]);
+
+        Settings::set('fa_a', 'custom', 9);
+        Settings::set('fa_b', 'custom', 9);
+
+        $count = Settings::forgetAll(9);
+
+        $this->assertEquals(2, $count);
+        $this->assertEquals('global', Settings::get('fa_a', 9));
+        $this->assertEquals('global', Settings::get('fa_b', 9));
+        $this->assertEmpty(Settings::getUserOverrides(9));
+    }
+
+    public function test_forget_all_dispatches_events_for_each_override() {
+        Event::fake();
+
+        Preference::create(['key' => 'fa_event_a', 'type' => 'string', 'default_value' => 'x', 'is_user_customizable' => true]);
+        Preference::create(['key' => 'fa_event_b', 'type' => 'string', 'default_value' => 'y', 'is_user_customizable' => true]);
+
+        Settings::set('fa_event_a', 'custom', 11);
+        Settings::set('fa_event_b', 'custom', 11);
+
+        Event::fake();
+        Settings::forgetAll(11);
+
+        Event::assertDispatched(SettingUpdated::class, 2);
+    }
+
+    public function test_get_by_category_includes_category_and_key_fields() {
+        Preference::create(['key' => 'cat_key', 'type' => 'string', 'default_value' => 'val', 'category' => 'testcat']);
+
+        $result = Settings::getByCategory('testcat');
+
+        $this->assertArrayHasKey('cat_key', $result);
+        $this->assertArrayHasKey('category', $result['cat_key']);
+        $this->assertArrayHasKey('key', $result['cat_key']);
+        $this->assertEquals('testcat', $result['cat_key']['category']);
+        $this->assertEquals('cat_key', $result['cat_key']['key']);
+    }
+
+    public function test_global_change_is_immediately_visible_to_users_without_override() {
+        config(['settings-kit.cache.enabled' => true]);
+        $this->app->forgetInstance('settings-kit');
+        Settings::clearResolvedInstance('settings-kit');
+
+        Preference::create([
+            'key' => 'cached_theme',
+            'type' => 'string',
+            'default_value' => 'light',
+            'is_user_customizable' => true,
+        ]);
+
+        // User 99 has no override — reads from global cache
+        $this->assertEquals('light', Settings::get('cached_theme', 99));
+
+        // Change global default
+        Settings::set('cached_theme', 'dark');
+
+        // User without override must immediately see the new global value (no stale cache)
+        $this->assertEquals('dark', Settings::get('cached_theme', 99));
+
+        // User with an explicit override is isolated from the global change
+        Settings::set('cached_theme', 'custom', 99);
+        Settings::set('cached_theme', 'midnight');
+
+        $this->assertEquals('custom', Settings::get('cached_theme', 99));
+        $this->assertEquals('midnight', Settings::get('cached_theme'));
     }
 }

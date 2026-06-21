@@ -5,8 +5,6 @@ parameters:
         - tests
     excludePaths:
         - tests/TestCase.php
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - '#Call to an undefined static method.*#'
@@ -17,6 +15,8 @@ parameters:
         - '#Method.*has parameter.*with no type specified#'
         - '#Call to an undefined method.*Builder.*::forRole\(\)#'
         - '#Call to an undefined method.*Builder.*::forCategory\(\)#'
+        - identifier: missingType.iterableValue
+        - identifier: missingType.generics
     bootstrapFiles:
         - vendor/autoload.php
         - phpstan-bootstrap.php

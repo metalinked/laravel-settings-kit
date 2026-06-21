@@ -73,8 +73,19 @@ class SettingsApiTest extends TestCase {
     }
 
     public function test_development_bypass_disabled_in_production() {
-        // Skip this test as it causes migration rollback prompts
-        $this->markTestSkipped('This test causes migration rollback prompts in production environment');
+        config(['settings-kit.api.disable_auth_in_development' => true]);
+
+        // Simulate production environment
+        app()['env'] = 'production';
+
+        // Should require authentication even with bypass enabled, because env is not local/testing
+        $response = $this->getJson('/api/settings-kit');
+
+        $response->assertStatus(401)
+                ->assertJson(['error' => 'Invalid or missing token']);
+
+        // Restore environment for subsequent tests
+        app()['env'] = 'testing';
     }
 
     public function test_development_bypass_works_in_testing_environment() {
@@ -130,7 +141,6 @@ class SettingsApiTest extends TestCase {
                     'data' => [
                         'key' => 'global_test_setting',
                         'value' => 'global_value',
-                        'user_id' => null,
                         'type' => 'global',
                     ],
                 ]);
@@ -186,7 +196,6 @@ class SettingsApiTest extends TestCase {
                     'data' => [
                         'key' => 'updateable_global',
                         'value' => 'new_global_value',
-                        'user_id' => null,
                         'type' => 'global',
                     ],
                 ]);
@@ -198,7 +207,7 @@ class SettingsApiTest extends TestCase {
         ]);
 
         $response->assertStatus(400)
-                ->assertJson(['error' => 'User ID required for user settings']);
+                ->assertJson(['success' => false, 'error' => 'User ID required']);
     }
 
     public function test_can_get_all_settings() {
@@ -327,7 +336,6 @@ class SettingsApiTest extends TestCase {
                 ->assertJson([
                     'success' => false,
                     'error' => 'Setting not found',
-                    'message' => 'Setting does not exist. Set auto_create=true to create it automatically, or enable API auto-creation in config.',
                 ]);
     }
 
@@ -399,14 +407,14 @@ class SettingsApiTest extends TestCase {
             'translations' => [
                 'en' => [
                     'title' => 'API Created Setting',
-                    'description' => 'Created via API',
+                    'text' => 'Created via API',
                 ],
             ],
         ], [
             'Authorization' => 'Bearer test-token',
         ]);
 
-        $response->assertStatus(200)
+        $response->assertStatus(201)
                 ->assertJson([
                     'success' => true,
                     'message' => 'Preference created successfully',
@@ -563,6 +571,108 @@ class SettingsApiTest extends TestCase {
         $this->assertFalse(Settings::has('nonexistent_setting'));
     }
 
+    public function test_destroy_global_deletes_preference() {
+        Settings::create(['key' => 'to_delete', 'type' => 'string', 'default_value' => 'x']);
+
+        $response = $this->deleteJson('/api/settings-kit/global/to_delete', [], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true, 'message' => 'Preference deleted successfully']);
+        $this->assertFalse(Settings::has('to_delete'));
+    }
+
+    public function test_destroy_global_returns_404_for_missing_key() {
+        $response = $this->deleteJson('/api/settings-kit/global/nonexistent', [], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(404)->assertJson(['success' => false]);
+    }
+
+    public function test_store_global_returns_404_for_missing_key() {
+        $response = $this->postJson('/api/settings-kit/global/nonexistent', ['value' => 'x'], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(404)->assertJson(['success' => false, 'error' => 'Setting not found']);
+    }
+
+    public function test_store_user_returns_404_for_missing_key() {
+        $response = $this->postJson('/api/settings-kit/user/nonexistent?user_id=1', ['value' => 'x'], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(404)->assertJson(['success' => false, 'error' => 'Setting not found']);
+    }
+
+    public function test_can_get_all_user_settings() {
+        Settings::create(['key' => 'user_index_a', 'type' => 'string', 'default_value' => 'global_a', 'is_user_customizable' => true]);
+        Settings::create(['key' => 'user_index_b', 'type' => 'string', 'default_value' => 'global_b', 'is_user_customizable' => true]);
+        Settings::create(['key' => 'non_custom', 'type' => 'string', 'default_value' => 'x', 'is_user_customizable' => false]);
+        Settings::set('user_index_a', 'my_value', 42);
+
+        $response = $this->getJson('/api/settings-kit/user?user_id=42', [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)->assertJson(['success' => true]);
+
+        $data = $response->json('data');
+        $this->assertArrayHasKey('user_index_a', $data);
+        $this->assertArrayHasKey('user_index_b', $data);
+        $this->assertArrayNotHasKey('non_custom', $data);
+
+        $this->assertEquals('my_value', $data['user_index_a']['value']);
+        $this->assertTrue($data['user_index_a']['is_overridden']);
+        $this->assertEquals('global_b', $data['user_index_b']['value']);
+        $this->assertFalse($data['user_index_b']['is_overridden']);
+    }
+
+    public function test_can_batch_update_user_settings() {
+        Settings::create(['key' => 'batch_x', 'type' => 'string', 'default_value' => 'old', 'is_user_customizable' => true]);
+        Settings::create(['key' => 'batch_y', 'type' => 'string', 'default_value' => 'old', 'is_user_customizable' => true]);
+
+        $response = $this->postJson('/api/settings-kit/user/batch', [
+            'user_id' => 5,
+            'settings' => ['batch_x' => 'new_x', 'batch_y' => 'new_y'],
+        ], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'data' => ['user_id' => 5, 'updated' => 2]]);
+
+        $this->assertEquals('new_x', Settings::get('batch_x', 5));
+        $this->assertEquals('new_y', Settings::get('batch_y', 5));
+    }
+
+    public function test_can_reset_all_user_overrides() {
+        Settings::create(['key' => 'reset_all_a', 'type' => 'string', 'default_value' => 'global', 'is_user_customizable' => true]);
+        Settings::create(['key' => 'reset_all_b', 'type' => 'string', 'default_value' => 'global', 'is_user_customizable' => true]);
+        Settings::set('reset_all_a', 'custom', 8);
+        Settings::set('reset_all_b', 'custom', 8);
+
+        $response = $this->deleteJson('/api/settings-kit/user?user_id=8', [], [
+            'Authorization' => 'Bearer test-token',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['success' => true, 'data' => ['user_id' => 8, 'reset_count' => 2]]);
+
+        $this->assertEquals('global', Settings::get('reset_all_a', 8));
+        $this->assertEquals('global', Settings::get('reset_all_b', 8));
+    }
+
+    public function test_all_responses_have_success_field() {
+        // Verify consistent response format for error cases
+        $notFound = $this->getJson('/api/settings-kit/global/nonexistent', ['Authorization' => 'Bearer test-token']);
+        $notFound->assertJson(['success' => false]);
+
+        $badUser = $this->getJson('/api/settings-kit/user?user_id=0', ['Authorization' => 'Bearer test-token']);
+        $this->assertArrayHasKey('success', $badUser->json());
+    }
+
     public function test_api_auto_create_respects_is_user_customizable() {
         // Enable auto-creation
         config(['settings-kit.api.auto_create_missing_settings' => true]);
@@ -589,6 +699,6 @@ class SettingsApiTest extends TestCase {
             'Authorization' => 'Bearer test-token',
         ]);
 
-        $response->assertStatus(500); // Should fail with InvalidArgumentException
+        $response->assertStatus(422); // Should fail with InvalidArgumentException converted to 422
     }
 }

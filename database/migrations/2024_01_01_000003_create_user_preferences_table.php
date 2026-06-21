@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create($tableName, function (Blueprint $table) use ($preferencesTable) {
             $table->id();
             $table->foreignId('preference_id')->constrained($preferencesTable)->onDelete('cascade');
-            $table->unsignedBigInteger('user_id')->nullable()->index(); // Allow null for global overrides
+            $table->unsignedBigInteger('user_id')->index();
             $table->text('value');
             $table->timestamps();
 

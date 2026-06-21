@@ -7,56 +7,44 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class SettingsKitApiAuth {
-    /**
-     * Handle an incoming request.
-     */
     public function handle(Request $request, Closure $next): Response {
-        // Check if API is enabled
         if (!config('settings-kit.api.enabled', false)) {
             return response()->json(['error' => 'API not enabled'], 404);
         }
 
-        // Allow bypassing auth in development
-        if (config('settings-kit.api.disable_auth_in_development', false) &&
-            app()->environment(['local', 'testing'])) {
+        if (
+            config('settings-kit.api.disable_auth_in_development', false) &&
+            app()->environment(['local', 'testing'])
+        ) {
             return $next($request);
         }
 
         $authMode = config('settings-kit.api.auth_mode', 'token');
 
-        switch ($authMode) {
-            case 'token':
-                return $this->handleTokenAuth($request, $next);
-            case 'sanctum':
-                return $this->handleSanctumAuth($request, $next);
-            case 'passport':
-                return $this->handlePassportAuth($request, $next);
-            default:
-                return response()->json(['error' => 'Invalid auth mode'], 500);
-        }
+        return match ($authMode) {
+            'token' => $this->handleTokenAuth($request, $next),
+            'sanctum' => $this->handleSanctumAuth($request, $next),
+            'passport' => $this->handlePassportAuth($request, $next),
+            default => response()->json(['error' => 'Invalid auth mode configured'], 500),
+        };
     }
 
-    /**
-     * Handle token-based authentication.
-     */
     protected function handleTokenAuth(Request $request, Closure $next): Response {
-        $token = $request->bearerToken();
         $expectedToken = config('settings-kit.api.token');
 
         if (empty($expectedToken)) {
             return response()->json(['error' => 'API token not configured'], 500);
         }
 
-        if ($token !== $expectedToken) {
+        $token = $request->bearerToken() ?? '';
+
+        if (!hash_equals($expectedToken, $token)) {
             return response()->json(['error' => 'Invalid or missing token'], 401);
         }
 
         return $next($request);
     }
 
-    /**
-     * Handle Sanctum-based authentication.
-     */
     protected function handleSanctumAuth(Request $request, Closure $next): Response {
         if (!auth('sanctum')->check()) {
             return response()->json(['error' => 'Unauthenticated'], 401);
@@ -65,9 +53,6 @@ class SettingsKitApiAuth {
         return $next($request);
     }
 
-    /**
-     * Handle Passport-based authentication.
-     */
     protected function handlePassportAuth(Request $request, Closure $next): Response {
         if (!auth('api')->check()) {
             return response()->json(['error' => 'Unauthenticated'], 401);

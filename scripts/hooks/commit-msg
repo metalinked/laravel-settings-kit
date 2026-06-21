@@ -1,0 +1,5 @@
+#!/bin/sh
+# Strip Co-Authored-By lines referencing Claude from commit messages.
+# Install: cp scripts/hooks/commit-msg .git/hooks/commit-msg && chmod +x .git/hooks/commit-msg
+COMMIT_MSG_FILE="$1"
+sed -i '/^Co-Authored-By:.*[Cc]laude/d' "$COMMIT_MSG_FILE"

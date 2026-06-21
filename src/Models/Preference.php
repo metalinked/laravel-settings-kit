@@ -11,9 +11,9 @@ use Illuminate\Support\Facades\App;
  * @method static Builder forRole(?string $role)
  * @method static Builder forCategory(string $category)
  * @method mixed getDefaultValue()
- * @method mixed getUserValue(int $userId)
- * @method string|null getLabel(string $locale = null)
- * @method string|null getDescription(string $locale = null)
+ * @method mixed getUserValue(?int $userId)
+ * @method string getLabel(string $locale = null)
+ * @method string getDescription(string $locale = null)
  */
 class Preference extends Model {
     protected $fillable = [
@@ -38,48 +38,41 @@ class Preference extends Model {
         $this->table = config('settings-kit.tables.preferences', 'preferences');
     }
 
-    /**
-     * Get the preference contents (translations).
-     */
     public function contents(): HasMany {
         return $this->hasMany(PreferenceContent::class);
     }
 
-    /**
-     * Get the user preferences.
-     */
     public function userPreferences(): HasMany {
         return $this->hasMany(UserPreference::class);
     }
 
     /**
-     * Get the translated content for the current or specified locale.
+     * Get the translated content for a locale, falling back to the configured fallback locale.
+     * Uses the already-loaded `contents` collection when available to avoid N+1 queries.
      */
     public function getTranslatedContent(string $locale = null): ?PreferenceContent {
         $locale ??= App::getLocale();
+        $fallback = config('settings-kit.fallback_locale', 'en');
 
-        $content = $this->contents()->where('locale', $locale)->first();
+        if ($this->relationLoaded('contents')) {
+            $content = $this->contents->firstWhere('locale', $locale)
+                ?? $this->contents->firstWhere('locale', $fallback);
 
-        if (!$content) {
-            $fallbackLocale = config('settings-kit.fallback_locale', 'en');
-            $content = $this->contents()->where('locale', $fallbackLocale)->first();
+            return $content instanceof PreferenceContent ? $content : null;
         }
+
+        $content = $this->contents()->where('locale', $locale)->first()
+            ?? $this->contents()->where('locale', $fallback)->first();
 
         return $content instanceof PreferenceContent ? $content : null;
     }
 
-    /**
-     * Get the label for the current or specified locale.
-     */
     public function getLabel(string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
         return $content ? $content->title : $this->key;
     }
 
-    /**
-     * Get the description for the current or specified locale.
-     */
     public function getDescription(string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
@@ -87,26 +80,22 @@ class Preference extends Model {
     }
 
     /**
-     * Get the user-specific value for this preference.
+     * Get the user-specific value, falling back to the global default when no override exists.
      */
     public function getUserValue(?int $userId): mixed {
-        $userPreference = $this->userPreferences()->where('user_id', $userId)->first();
-
-        if ($userPreference) {
-            return $this->castValue($userPreference->value);
+        if ($userId === null) {
+            return null;
         }
 
-        // Only return default if this is not a global override lookup (userId === null)
-        if ($userId !== null) {
-            return $this->getDefaultValue();
-        }
+        $userPreference = $this->relationLoaded('userPreferences')
+            ? $this->userPreferences->firstWhere('user_id', $userId)
+            : $this->userPreferences()->where('user_id', $userId)->first();
 
-        return null; // No global override found
+        return $userPreference
+            ? $this->castValue($userPreference->value)
+            : $this->getDefaultValue();
     }
 
-    /**
-     * Set the user-specific value for this preference.
-     */
     public function setUserValue(?int $userId, mixed $value): UserPreference {
         /** @var UserPreference $userPreference */
         $userPreference = $this->userPreferences()->updateOrCreate(
@@ -117,17 +106,11 @@ class Preference extends Model {
         return $userPreference;
     }
 
-    /**
-     * Get the default value with proper casting.
-     */
     public function getDefaultValue(): mixed {
         return $this->castValue($this->default_value);
     }
 
-    /**
-     * Cast a value to the appropriate type.
-     */
-    protected function castValue(mixed $value): mixed {
+    public function castValue(mixed $value): mixed {
         return match ($this->type) {
             'boolean' => (bool) $value,
             'integer' => (int) $value,
@@ -137,9 +120,6 @@ class Preference extends Model {
         };
     }
 
-    /**
-     * Prepare a value for storage.
-     */
     public function prepareValue(mixed $value): string {
         return match ($this->type) {
             'boolean' => $value ? '1' : '0',
@@ -149,9 +129,6 @@ class Preference extends Model {
         };
     }
 
-    /**
-     * Scope to filter by role.
-     */
     public function scopeForRole(Builder $query, string $role = null): void {
         if ($role === null) {
             $query->whereNull('role');
@@ -160,9 +137,6 @@ class Preference extends Model {
         }
     }
 
-    /**
-     * Scope to filter by category.
-     */
     public function scopeForCategory(Builder $query, string $category): void {
         $query->where('category', $category);
     }

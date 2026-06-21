@@ -1,0 +1,15 @@
+# Files excluded from Packagist/Composer distributions (git archive)
+.github/             export-ignore
+.gitattributes       export-ignore
+tests/               export-ignore
+examples/            export-ignore
+scripts/             export-ignore
+CLAUDE.md            export-ignore
+CONTRIBUTING.md      export-ignore
+TODO.md              export-ignore
+phpunit.xml          export-ignore
+phpstan.neon         export-ignore
+phpstan-bootstrap.php export-ignore
+.php-cs-fixer.php    export-ignore
+.release-please-manifest.json export-ignore
+release-please-config.json    export-ignore

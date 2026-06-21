@@ -31,23 +31,14 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Default Locale
-    |--------------------------------------------------------------------------
-    |
-    | The default locale to use when retrieving translated content.
-    |
-    */
-    'default_locale' => 'en',
-
-    /*
-    |--------------------------------------------------------------------------
     | Fallback Locale
     |--------------------------------------------------------------------------
     |
-    | The fallback locale to use when a translation is not available.
+    | Locale used when a translation is not available in the requested locale.
+    | Defaults to 'en'.
     |
     */
-    'fallback_locale' => 'en',
+    'fallback_locale' => env('SETTINGS_KIT_FALLBACK_LOCALE', 'en'),
 
     /*
     |--------------------------------------------------------------------------

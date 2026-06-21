@@ -43,18 +43,21 @@ Route::prefix(config('settings-kit.api.prefix', 'api/settings-kit'))
             Route::delete('/{key}', [SettingsKitApiController::class, 'destroyGlobal']);
         });
         
-        // User settings routes (for user-specific settings)
+        // User settings routes
         Route::prefix('user')->group(function () {
-            // Get a specific user setting
+            // All resolved settings for a user (one request on app boot)
+            Route::get('/', [SettingsKitApiController::class, 'indexUser']);
+
+            // Batch update multiple settings (e.g. save preferences panel)
+            Route::post('/batch', [SettingsKitApiController::class, 'batchUser']);
+
+            // Reset all user overrides to global defaults
+            Route::delete('/', [SettingsKitApiController::class, 'destroyAllUser']);
+
+            // Single-key operations
             Route::get('/{key}', [SettingsKitApiController::class, 'showUser']);
-            
-            // Create or update a user setting value
             Route::post('/{key}', [SettingsKitApiController::class, 'storeUser']);
-            
-            // Update a user setting value
             Route::put('/{key}', [SettingsKitApiController::class, 'updateUser']);
-            
-            // Delete a user setting value (reset to default)
             Route::delete('/{key}', [SettingsKitApiController::class, 'destroyUser']);
         });
         
