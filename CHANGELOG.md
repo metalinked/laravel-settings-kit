@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.1.0...v1.2.0) (2026-06-21)
+
+
+### Features
+
+* major refactor — coherence fixes, batch API, Laravel 13 support ([4544b08](https://github.com/metalinked/laravel-settings-kit/commit/4544b087d05589e0a23c4994c2e64a9be87cb921))
+
 ## [1.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.0.3...v1.1.0) (2025-09-30)
 
 
