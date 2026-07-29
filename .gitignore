@@ -17,6 +17,9 @@
 .idea/
 *.sublime-*
 
+# Local project instructions
+/CLAUDE.md
+
 # OS files
 .DS_Store
 Thumbs.db
