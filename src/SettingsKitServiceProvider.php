@@ -4,57 +4,52 @@ namespace Metalinked\LaravelSettingsKit;
 
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
-use Metalinked\LaravelSettingsKit\Console\Commands\ClearCacheCommand;
-use Metalinked\LaravelSettingsKit\Console\Commands\ExportSettingsCommand;
-use Metalinked\LaravelSettingsKit\Console\Commands\ImportSettingsCommand;
-use Metalinked\LaravelSettingsKit\Console\Commands\ListSettingsCommand;
-use Metalinked\LaravelSettingsKit\Http\Middleware\SettingsKitApiAuth;
-use Metalinked\LaravelSettingsKit\Services\SettingsService;
+use Metalinked\LaravelSettingsKit\Console\ClearCacheCommand;
+use Metalinked\LaravelSettingsKit\Console\ExportSettingsCommand;
+use Metalinked\LaravelSettingsKit\Console\ImportSettingsCommand;
+use Metalinked\LaravelSettingsKit\Console\ListSettingsCommand;
+use Metalinked\LaravelSettingsKit\Console\PruneSettingsCommand;
+use Metalinked\LaravelSettingsKit\Console\UpgradeFromV1Command;
 
 class SettingsKitServiceProvider extends ServiceProvider {
     public function register(): void {
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/settings-kit.php',
-            'settings-kit'
-        );
+        $this->mergeConfigFrom(__DIR__ . '/../config/settings-kit.php', 'settings-kit');
 
-        $this->app->singleton('settings-kit', function ($app) {
-            return new SettingsService();
+        // Definitions are declared once at boot and live for the whole process.
+        $this->app->singleton(SettingsRegistry::class, function ($app) {
+            return (new SettingsRegistry())->load($app['config']->get('settings-kit.settings', []));
         });
 
-        $this->app->alias('settings-kit', SettingsService::class);
+        // Stored values are memoised per request / queued job (Octane-safe).
+        $this->app->scoped(SettingsRepository::class);
+        $this->app->scoped(SettingsManager::class);
+        $this->app->alias(SettingsManager::class, 'settings-kit');
     }
 
     public function boot(): void {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-        $this->loadRoutesFrom(__DIR__ . '/../routes/api.php');
 
-        $router = $this->app['router'];
-        $router->aliasMiddleware('settings-kit.api.auth', SettingsKitApiAuth::class);
-
-        Blade::directive('setting', function ($expression) {
-            return "<?php echo e(\\Metalinked\\LaravelSettingsKit\\Facades\\Settings::get({$expression})); ?>";
+        Blade::directive('setting', function (string $expression) {
+            return "<?php echo e(\\Metalinked\\LaravelSettingsKit\\Definition::export(app(\\Metalinked\\LaravelSettingsKit\\SettingsManager::class)->get({$expression}))); ?>";
         });
 
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../config/settings-kit.php' => config_path('settings-kit.php'),
-            ], ['config', 'settings-kit-config']);
+            ], 'settings-kit-config');
 
             $this->publishes([
                 __DIR__ . '/../database/migrations' => database_path('migrations'),
-            ], ['migrations', 'settings-kit-migrations']);
+            ], 'settings-kit-migrations');
 
             $this->commands([
-                ExportSettingsCommand::class,
-                ImportSettingsCommand::class,
                 ListSettingsCommand::class,
                 ClearCacheCommand::class,
+                ExportSettingsCommand::class,
+                ImportSettingsCommand::class,
+                PruneSettingsCommand::class,
+                UpgradeFromV1Command::class,
             ]);
         }
-    }
-
-    public function provides(): array {
-        return ['settings-kit', SettingsService::class];
     }
 }

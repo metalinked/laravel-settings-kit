@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 1.x ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, 1.x ]
 
 jobs:
   test:
@@ -15,23 +15,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # PHP 8.1 — L9, L10
-          - { php-version: '8.1', laravel-version: '9.*',  testbench-version: '^7.0' }
-          - { php-version: '8.1', laravel-version: '10.*', testbench-version: '^8.0' }
-          # PHP 8.2 — L9, L10, L11, L12
-          - { php-version: '8.2', laravel-version: '9.*',  testbench-version: '^7.0' }
-          - { php-version: '8.2', laravel-version: '10.*', testbench-version: '^8.0' }
           - { php-version: '8.2', laravel-version: '11.*', testbench-version: '^9.0' }
           - { php-version: '8.2', laravel-version: '12.*', testbench-version: '^10.0' }
-          # PHP 8.3 — L10, L11, L12, L13 (experimental)
-          - { php-version: '8.3', laravel-version: '10.*', testbench-version: '^8.0' }
           - { php-version: '8.3', laravel-version: '11.*', testbench-version: '^9.0' }
           - { php-version: '8.3', laravel-version: '12.*', testbench-version: '^10.0' }
-          - { php-version: '8.3', laravel-version: '13.*', testbench-version: '^11.0', experimental: true }
-          # PHP 8.4 — L11, L12, L13 (experimental)
-          - { php-version: '8.4', laravel-version: '11.*', testbench-version: '^9.0' }
+          - { php-version: '8.3', laravel-version: '13.*', testbench-version: '^11.0' }
           - { php-version: '8.4', laravel-version: '12.*', testbench-version: '^10.0' }
-          - { php-version: '8.4', laravel-version: '13.*', testbench-version: '^11.0', experimental: true }
+          - { php-version: '8.4', laravel-version: '13.*', testbench-version: '^11.0' }
 
     name: P${{ matrix.php-version }} - L${{ matrix.laravel-version }}
 

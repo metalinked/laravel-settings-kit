@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.0.0 (unreleased)
+
+Complete redesign. See [UPGRADE.md](UPGRADE.md) for the migration path and `php artisan settings:upgrade-from-v1`.
+
+### Features
+
+* settings are defined in code (config file or fluent `Settings::define()`); the database only stores values
+* per-model overrides for any Eloquent model via polymorphic scopes and the `HasSettings` trait (integer, UUID and ULID keys)
+* new types: `float`, `array`, PHP backed `enum`; Laravel validation rules per setting; encrypted settings
+* `panel()` returns everything a settings screen needs, translated through regular language files
+* one query per scope, cached per scope with version-based invalidation (any cache driver), request-scoped memo (Octane/queue safe)
+* `settings()` helper, `SettingReset` event, events dispatched after commit with previous value
+* optional JSON endpoints registered with `Settings::routes()`, authorised with your middleware and Gates
+* new commands: `settings:prune`, `settings:upgrade-from-v1`; `settings:export`/`settings:import` validate values
+
+### Breaking changes
+
+* requires PHP 8.2+ and Laravel 11+
+* `preferences`, `preference_contents` and `user_preferences` tables replaced by `settings_kit_values`
+* `Settings::get($key, $userId)` replaced by `Settings::for($model)->get($key)`; the second argument of `get()` is now a default value
+* 1.x REST API, token/Sanctum/Passport auth modes and Eloquent models removed
+
 ## [1.2.1](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.0...v1.2.1) (2026-06-21)
 
 
