@@ -60,6 +60,31 @@ class CommandsTest extends TestCase {
         $this->assertSame(50, Settings::get('per_page'));
     }
 
+    public function test_encrypted_settings_are_not_exported_or_listed_by_default(): void {
+        Settings::define('api_key')->string()->nullable()->encrypted();
+        Settings::set(['site_name' => 'Live', 'api_key' => 'secret-123']);
+        $path = "{$this->tmp}/settings.json";
+
+        $this->artisan('settings:export', ['path' => $path])
+            ->expectsOutputToContain('api_key')
+            ->assertSuccessful();
+        $this->assertSame(['site_name' => 'Live'], json_decode(File::get($path), true));
+
+        $this->artisan('settings:export', ['path' => $path, '--with-secrets' => true])->assertSuccessful();
+        $this->assertSame(['api_key' => 'secret-123', 'site_name' => 'Live'], json_decode(File::get($path), true));
+
+        $this->artisan('settings:list')
+            ->expectsTable(
+                ['Key', 'Group', 'Type', 'Default', 'Global value', 'Overridable', 'Overrides'],
+                [
+                    ['site_name', 'general', 'string', 'My App', 'Live', 'no', 0],
+                    ['per_page', 'general', 'integer', '20', '—', 'yes', 0],
+                    ['api_key', 'general', 'string', 'null', '(encrypted)', 'no', 0],
+                ]
+            )
+            ->assertSuccessful();
+    }
+
     public function test_import_dry_run_saves_nothing(): void {
         $path = "{$this->tmp}/settings.json";
         File::put($path, json_encode(['site_name' => 'Dry']));

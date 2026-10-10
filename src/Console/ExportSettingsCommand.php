@@ -9,7 +9,8 @@ use Metalinked\LaravelSettingsKit\SettingsManager;
 class ExportSettingsCommand extends Command {
     protected $signature = 'settings:export
         {path? : File to write; prints to the console when omitted}
-        {--all : Include settings that still use their default value}';
+        {--all : Include settings that still use their default value}
+        {--with-secrets : Include encrypted settings, decrypted, in plain text}';
 
     protected $description = 'Export global setting values to JSON';
 
@@ -18,6 +19,16 @@ class ExportSettingsCommand extends Command {
             fn ($value) => Definition::export($value),
             $this->option('all') ? $settings->all() : $settings->stored()
         );
+
+        $secrets = array_filter(
+            array_keys($values),
+            fn ($key) => $settings->definition((string) $key)?->isEncrypted() ?? false
+        );
+
+        if ($secrets !== [] && !$this->option('with-secrets')) {
+            $values = array_diff_key($values, array_flip($secrets));
+            $this->components->warn('Skipped encrypted setting(s): ' . implode(', ', $secrets) . '. Use --with-secrets to include them.');
+        }
 
         ksort($values);
         $json = (string) json_encode((object) $values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION);

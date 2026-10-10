@@ -222,18 +222,25 @@ class ScopedSettings {
                 continue;
             }
 
+            $value = $this->get($key);
+            // What the value falls back to when this scope stores nothing.
+            $default = $this->scope->isGlobal()
+                ? $definition->getDefault()
+                : $this->globalValue($definition, $definition->getDefault());
+            // Secrets are write-only: a screen can replace them, never read them back.
+            $secret = $definition->isEncrypted();
+
             $items[] = [
                 'key' => $key,
                 'group' => $definition->getGroup(),
                 'type' => $definition->getType(),
                 'label' => $definition->getLabel(),
                 'description' => $definition->getDescription(),
-                'value' => Definition::export($this->get($key)),
-                // What the value falls back to when this scope stores nothing.
-                'default' => Definition::export($this->scope->isGlobal()
-                    ? $definition->getDefault()
-                    : $this->globalValue($definition, $definition->getDefault())),
+                'value' => $secret ? null : Definition::export($value),
+                'default' => $secret ? null : Definition::export($default),
+                'filled' => $value !== null,
                 'overridden' => $this->has($key),
+                'encrypted' => $secret,
                 'nullable' => $definition->isNullable(),
                 'options' => $definition->getOptions(),
                 'meta' => $definition->getMeta(),

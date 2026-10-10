@@ -27,7 +27,11 @@ class ListSettingsCommand extends Command {
                 $definition->getGroup(),
                 $definition->getType(),
                 $this->display($definition->getDefault()),
-                $settings->has($key) ? $this->display($settings->get($key)) : '—',
+                match (true) {
+                    !$settings->has($key) => '—',
+                    $definition->isEncrypted() => '(encrypted)',
+                    default => $this->display($settings->get($key)),
+                },
                 $definition->isOverridable() ? 'yes' : 'no',
                 $summary[$key]['overrides'] ?? 0,
             ];

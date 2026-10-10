@@ -30,7 +30,25 @@ $user->settings()->panel();                     // everything a preferences scre
 - **Fast.** All values of a scope are loaded with one query, cached together and memoised for the request. Ten settings for a user cost at most two queries, and none once cached.
 - **Ready for settings screens.** `panel()` returns labels, descriptions, options, current and default values and whether the value is overridden, translated through your normal language files.
 - **Optional JSON endpoints** that plug into your own auth middleware and Gates.
-- **Encrypted settings** for API keys and other secrets.
+- **Encrypted settings** for API keys and other secrets, write-only in panels and endpoints.
+
+## When to use it
+
+The package covers three kinds of values, all declared the same way:
+
+| Kind | Examples | How |
+|---|---|---|
+| Application settings | Site name, maintenance mode, global limits, API keys | Global values: `Settings::get()` / `Settings::set()` |
+| Personal preferences | Theme, language, items per page, notifications | `overridable` settings, read and written on the user |
+| Team or tenant settings | Plan limits, branding, a team's default locale | `overridable` settings scoped to another model (`overridable(Team::class)`) |
+
+A model inherits the global value until it stores its own, so the same key can be an app-wide default and a personal choice at once.
+
+It is **not** the right tool when:
+
+- Your customers need to create **new fields at runtime**, without a deploy. Definitions live in code on purpose; a dynamic form builder needs its own tables.
+- The value is really **domain data**: something you query, filter or join on (`where('plan', 'pro')`), that has relations, or that grows per record. Use a column or a table.
+- It is **infrastructure configuration** that belongs in `.env` and `config/` (database credentials, queue drivers): those are needed before the database is available.
 
 ## Requirements
 
@@ -177,7 +195,9 @@ $user->settings()->panel('appearance');
         'description' => 'Colour scheme of the interface',
         'value' => 'dark',          // what the user gets now
         'default' => 'light',       // what they get if they reset it
-        'overridden' => true,
+        'filled' => true,           // whether there is any value (useful for secrets)
+        'overridden' => true,       // whether this scope stores its own value
+        'encrypted' => false,
         'nullable' => false,
         'options' => [['value' => 'light', 'label' => 'Light'], ['value' => 'dark', 'label' => 'Dark']],
         'meta' => [],
@@ -186,6 +206,8 @@ $user->settings()->panel('appearance');
 ```
 
 For a model, the panel only lists settings that model may override. `Settings::panel()` lists every setting with its global value.
+
+The package does not ship any UI: `panel()` is the data, and your app renders it with whatever it already uses. See [docs/settings-screens.md](docs/settings-screens.md) for complete examples with Blade, Livewire and a JavaScript SPA.
 
 ### Translations
 
@@ -219,6 +241,18 @@ try {
 ```
 
 When several values are set at once, they are all validated before anything is written.
+
+## Encrypted settings
+
+Settings declared with `encrypted` are stored encrypted with your `APP_KEY`. They are meant for API keys and other secrets, so they are treated as **write-only** outside your own code:
+
+- `get()` returns the decrypted value, as usual.
+- `panel()` and the JSON endpoints always return `value` and `default` as `null` for them. Use `filled` to show whether a value is configured, and send a new value only when the user types one.
+- The JSON endpoints ignore `null` or `""` for an encrypted setting, so a form sent back unchanged keeps the stored secret. To remove a user's secret, use `DELETE /settings/me/{key}`; global secrets are removed in code with `Settings::forget()`.
+- `settings:list` shows `(encrypted)` instead of the value.
+- `settings:export` skips them unless you pass `--with-secrets`. The resulting file then contains them in plain text.
+
+`SettingUpdated` and `SettingReset` events do carry the decrypted value, so do not log them blindly. If you rotate `APP_KEY`, keep the old key in `APP_PREVIOUS_KEYS`: values that can no longer be decrypted fall back to their default.
 
 ## JSON endpoints (optional)
 
@@ -263,7 +297,7 @@ By default, keys that were never defined still work as a simple untyped store, a
 | Command | Description |
 |---|---|
 | `settings:list {--group=}` | Definitions with their default, global value and number of overrides. |
-| `settings:export {path?} {--all}` | Export global values as JSON (stored values only, or all with `--all`). |
+| `settings:export {path?} {--all} {--with-secrets}` | Export global values as JSON (stored values only, or all with `--all`). Encrypted settings are skipped unless `--with-secrets`. |
 | `settings:import {path} {--dry-run}` | Validate and import global values from JSON. |
 | `settings:prune {--force}` | Delete values of settings that are no longer defined, and overrides that are no longer allowed. |
 | `settings:clear-cache` | Invalidate every cached value. |

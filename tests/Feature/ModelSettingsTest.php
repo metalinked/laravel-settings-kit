@@ -172,7 +172,9 @@ class ModelSettingsTest extends TestCase {
             'description' => null,
             'value' => 'dark',
             'default' => 'dark',
+            'filled' => true,
             'overridden' => false,
+            'encrypted' => false,
             'nullable' => false,
             'options' => [['value' => 'light', 'label' => 'Light'], ['value' => 'dark', 'label' => 'Dark']],
             'meta' => [],
@@ -183,5 +185,22 @@ class ModelSettingsTest extends TestCase {
 
     public function test_global_panel_lists_every_definition(): void {
         $this->assertCount(4, Settings::panel());
+    }
+
+    public function test_panel_never_returns_encrypted_values(): void {
+        Settings::define('api_token')->string()->nullable()->encrypted()->overridable();
+        Settings::set('api_token', 'global-secret');
+
+        $global = collect(Settings::panel())->keyBy('key')['api_token'];
+        $this->assertNull($global['value']);
+        $this->assertTrue($global['filled']);
+        $this->assertTrue($global['encrypted']);
+
+        // The user inherits the global secret: neither value nor fallback may leak.
+        $mine = collect($this->user->settings()->panel())->keyBy('key')['api_token'];
+        $this->assertNull($mine['value']);
+        $this->assertNull($mine['default']);
+        $this->assertTrue($mine['filled']);
+        $this->assertSame('global-secret', $this->user->settings()->get('api_token'));
     }
 }

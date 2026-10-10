@@ -91,7 +91,13 @@ class SettingsController extends Controller {
 
         $this->ensureEditable(array_map('strval', array_keys($values)), $scope);
 
-        return $values;
+        // Panels never return secrets, so a form sent back unchanged carries an
+        // empty value for them: keep the stored secret instead of wiping it.
+        return array_filter(
+            $values,
+            fn ($value, $key) => !($this->settings->definition((string) $key)?->isEncrypted() && ($value === null || $value === '')),
+            ARRAY_FILTER_USE_BOTH
+        );
     }
 
     /**

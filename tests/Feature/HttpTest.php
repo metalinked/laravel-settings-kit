@@ -48,6 +48,47 @@ class HttpTest extends TestCase {
         $this->assertSame('dark', Settings::get('appearance.theme'));
     }
 
+    public function test_encrypted_settings_are_write_only(): void {
+        Gate::define('manage-settings', fn () => true);
+        Settings::define('services.api_key')->string()->nullable()->encrypted();
+
+        $this->actingAs($this->user)
+            ->patchJson('/api/settings', ['values' => ['services.api_key' => 'secret-123']])
+            ->assertOk()
+            ->assertDontSee('secret-123')
+            ->assertJsonPath('data.3.key', 'services.api_key')
+            ->assertJsonPath('data.3.value', null)
+            ->assertJsonPath('data.3.filled', true)
+            ->assertJsonPath('data.3.encrypted', true);
+
+        $this->actingAs($this->user)->getJson('/api/settings')->assertOk()->assertDontSee('secret-123');
+        $this->assertSame('secret-123', Settings::get('services.api_key'));
+    }
+
+    public function test_sending_a_form_back_unchanged_keeps_existing_secrets(): void {
+        Gate::define('manage-settings', fn () => true);
+        Settings::define('services.api_key')->string()->nullable()->encrypted()->overridable();
+        Settings::set('services.api_key', 'global-secret');
+        $this->user->settings()->set('services.api_key', 'my-secret');
+
+        // What a client gets from the panel and sends straight back.
+        $this->actingAs($this->user)
+            ->patchJson('/api/settings', ['values' => ['site_name' => 'Renamed', 'services.api_key' => null]])
+            ->assertOk();
+        $this->actingAs($this->user)
+            ->patchJson('/api/settings/me', ['values' => ['appearance.theme' => 'dark', 'services.api_key' => '']])
+            ->assertOk()
+            ->assertDontSee('my-secret');
+
+        $this->assertSame('Renamed', Settings::get('site_name'));
+        $this->assertSame('global-secret', Settings::get('services.api_key'));
+        $this->assertSame('my-secret', $this->user->settings()->get('services.api_key'));
+
+        // Removing a user's secret is explicit.
+        $this->actingAs($this->user)->deleteJson('/api/settings/me/services.api_key')->assertOk();
+        $this->assertSame('global-secret', $this->user->settings()->get('services.api_key'));
+    }
+
     public function test_group_filter(): void {
         Gate::define('manage-settings', fn () => true);
 
