@@ -22,7 +22,7 @@ class SettingsService {
     /**
      * Get a setting value.
      */
-    public function get(string $key, int $userId = null): mixed {
+    public function get(string $key, ?int $userId = null): mixed {
         if (!$this->cacheEnabled) {
             return $this->getFromDatabase($key, $userId);
         }
@@ -67,7 +67,7 @@ class SettingsService {
      *
      * @param array<string, mixed> $keyValues
      */
-    public function setMultiple(array $keyValues, int $userId = null): void {
+    public function setMultiple(array $keyValues, ?int $userId = null): void {
         DB::transaction(function () use ($keyValues, $userId) {
             foreach ($keyValues as $key => $value) {
                 $this->set($key, $value, $userId);
@@ -81,7 +81,7 @@ class SettingsService {
      * @param  string[]  $keys
      * @return array<string, mixed>
      */
-    public function getMultiple(array $keys, int $userId = null): array {
+    public function getMultiple(array $keys, ?int $userId = null): array {
         $preferences = Preference::whereIn('key', $keys)
             ->with(['userPreferences' => function ($q) use ($userId) {
                 if ($userId) {
@@ -110,7 +110,7 @@ class SettingsService {
     /**
      * Get a setting value, or auto-create it with the given default if it does not exist.
      */
-    public function remember(string $key, mixed $default, int $userId = null): mixed {
+    public function remember(string $key, mixed $default, ?int $userId = null): mixed {
         $value = $this->get($key, $userId);
 
         if ($value === null && !$this->exists($key)) {
@@ -125,7 +125,7 @@ class SettingsService {
     /**
      * Set a setting value.
      */
-    public function set(string $key, mixed $value, int $userId = null, bool $autoCreate = false): void {
+    public function set(string $key, mixed $value, ?int $userId = null, bool $autoCreate = false): void {
         if ($userId !== null && $value === null) {
             throw new \InvalidArgumentException("Cannot store null as a user override for '{$key}'. Use Settings::forget() to revert to the global default.");
         }
@@ -186,21 +186,21 @@ class SettingsService {
     /**
      * Set a setting value, creating the preference automatically if it doesn't exist.
      */
-    public function setWithAutoCreate(string $key, mixed $value, int $userId = null): void {
+    public function setWithAutoCreate(string $key, mixed $value, ?int $userId = null): void {
         $this->set($key, $value, $userId, true);
     }
 
     /**
      * Check if a boolean setting is enabled.
      */
-    public function isEnabled(string $key, int $userId = null): bool {
+    public function isEnabled(string $key, ?int $userId = null): bool {
         return (bool) $this->get($key, $userId);
     }
 
     /**
      * Get the translated label for a setting.
      */
-    public function label(string $key, string $locale = null): string {
+    public function label(string $key, ?string $locale = null): string {
         $preference = $this->findPreference($key);
 
         return $preference ? $preference->getLabel($locale) : $key;
@@ -209,7 +209,7 @@ class SettingsService {
     /**
      * Get the translated description for a setting.
      */
-    public function description(string $key, string $locale = null): string {
+    public function description(string $key, ?string $locale = null): string {
         $preference = $this->findPreference($key);
 
         return $preference ? $preference->getDescription($locale) : '';
@@ -220,7 +220,7 @@ class SettingsService {
      *
      * @return array<string, mixed>
      */
-    public function all(string $role = null, int $userId = null, string $category = null): array {
+    public function all(?string $role = null, ?int $userId = null, ?string $category = null): array {
         $query = Preference::query();
 
         if ($role !== null) {
@@ -264,7 +264,7 @@ class SettingsService {
      * Reset a user-specific setting back to the global default.
      * Has no effect when called without a userId (global settings are changed via set()).
      */
-    public function forget(string $key, int $userId = null): void {
+    public function forget(string $key, ?int $userId = null): void {
         if ($userId === null) {
             return;
         }
@@ -317,7 +317,7 @@ class SettingsService {
     /**
      * Count the number of registered settings.
      */
-    public function count(string $category = null, string $role = null): int {
+    public function count(?string $category = null, ?string $role = null): int {
         $query = Preference::query();
 
         if ($category !== null) {
@@ -350,7 +350,7 @@ class SettingsService {
      *
      * @return array<string, mixed>
      */
-    public function allForUser(int $userId, string $locale = null, string $category = null): array {
+    public function allForUser(int $userId, ?string $locale = null, ?string $category = null): array {
         $query = Preference::where('is_user_customizable', true);
 
         if ($category !== null) {
@@ -419,7 +419,7 @@ class SettingsService {
      *
      * @return array<string, mixed>
      */
-    public function getByCategory(string $category, int $userId = null, string $role = null): array {
+    public function getByCategory(string $category, ?int $userId = null, ?string $role = null): array {
         $query = Preference::forCategory($category);
 
         if ($role !== null) {
@@ -540,7 +540,7 @@ class SettingsService {
      *
      * @return array<string, mixed>
      */
-    public function allWithTranslations(string $locale = null, string $role = null, int $userId = null, string $category = null): array {
+    public function allWithTranslations(?string $locale = null, ?string $role = null, ?int $userId = null, ?string $category = null): array {
         $query = Preference::query();
 
         if ($role !== null) {
@@ -584,7 +584,7 @@ class SettingsService {
     /**
      * Get setting value from database.
      */
-    protected function getFromDatabase(string $key, int $userId = null): mixed {
+    protected function getFromDatabase(string $key, ?int $userId = null): mixed {
         $preference = $this->findPreference($key);
 
         if (!$preference) {
@@ -608,7 +608,7 @@ class SettingsService {
     /**
      * Generate a cache key for a setting.
      */
-    protected function getCacheKey(string $key, int $userId = null): string {
+    protected function getCacheKey(string $key, ?int $userId = null): string {
         $suffix = $userId ? "user_{$userId}" : 'global';
 
         return "{$this->cachePrefix}:{$key}:{$suffix}";
@@ -617,7 +617,7 @@ class SettingsService {
     /**
      * Clear cache for a specific setting.
      */
-    protected function clearCache(string $key, int $userId = null): void {
+    protected function clearCache(string $key, ?int $userId = null): void {
         if (!$this->cacheEnabled) {
             return;
         }

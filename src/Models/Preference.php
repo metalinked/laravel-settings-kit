@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\App;
  * @method static Builder forCategory(string $category)
  * @method mixed getDefaultValue()
  * @method mixed getUserValue(?int $userId)
- * @method string getLabel(string $locale = null)
- * @method string getDescription(string $locale = null)
+ * @method string getLabel(?string $locale = null)
+ * @method string getDescription(?string $locale = null)
  */
 class Preference extends Model {
     protected $fillable = [
@@ -50,7 +50,7 @@ class Preference extends Model {
      * Get the translated content for a locale, falling back to the configured fallback locale.
      * Uses the already-loaded `contents` collection when available to avoid N+1 queries.
      */
-    public function getTranslatedContent(string $locale = null): ?PreferenceContent {
+    public function getTranslatedContent(?string $locale = null): ?PreferenceContent {
         $locale ??= App::getLocale();
         $fallback = config('settings-kit.fallback_locale', 'en');
 
@@ -67,13 +67,13 @@ class Preference extends Model {
         return $content instanceof PreferenceContent ? $content : null;
     }
 
-    public function getLabel(string $locale = null): string {
+    public function getLabel(?string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
         return $content ? $content->title : $this->key;
     }
 
-    public function getDescription(string $locale = null): string {
+    public function getDescription(?string $locale = null): string {
         $content = $this->getTranslatedContent($locale);
 
         return $content ? $content->text : '';
@@ -129,7 +129,7 @@ class Preference extends Model {
         };
     }
 
-    public function scopeForRole(Builder $query, string $role = null): void {
+    public function scopeForRole(Builder $query, ?string $role = null): void {
         if ($role === null) {
             $query->whereNull('role');
         } else {

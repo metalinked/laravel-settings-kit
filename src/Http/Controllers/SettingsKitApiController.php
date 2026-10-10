@@ -504,7 +504,9 @@ class SettingsKitApiController extends Controller {
     }
 
     private function serverError(\Exception $e): JsonResponse {
-        return response()->json(['success' => false, 'error' => 'Internal server error', 'message' => $e->getMessage()], 500);
+        report($e);
+
+        return response()->json(['success' => false, 'error' => 'Internal server error'], 500);
     }
 
     protected function canAccessUserSettings(Request $request, int $userId): bool {
