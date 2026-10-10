@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.2](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.1...v1.2.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* declare nullable parameters explicitly to avoid PHP 8.4 deprecation notices
+* API 500 responses no longer expose the exception message; the exception is reported instead
+
 ## [1.2.1](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.0...v1.2.1) (2026-06-21)
 
 
