@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## [2.0.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.2...v2.0.0) (2026-10-10)
 
 Complete redesign. See [UPGRADE.md](UPGRADE.md) for the migration path and `php artisan settings:upgrade-from-v1`.
 
@@ -21,6 +21,14 @@ Complete redesign. See [UPGRADE.md](UPGRADE.md) for the migration path and `php 
 * `preferences`, `preference_contents` and `user_preferences` tables replaced by `settings_kit_values`
 * `Settings::get($key, $userId)` replaced by `Settings::for($model)->get($key)`; the second argument of `get()` is now a default value
 * 1.x REST API, token/Sanctum/Passport auth modes and Eloquent models removed
+
+## [1.2.2](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.1...v1.2.2) (2026-10-10)
+
+
+### Bug Fixes
+
+* declare nullable parameters explicitly to avoid PHP 8.4 deprecation notices
+* API 500 responses no longer expose the exception message; the exception is reported instead
 
 ## [1.2.1](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.0...v1.2.1) (2026-06-21)
 
