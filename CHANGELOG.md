@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.0.1](https://github.com/metalinked/laravel-settings-kit/compare/v2.0.0...v2.0.1) (2026-10-10)
+
+### Security
+
+* encrypted settings are now write-only outside your own code: `panel()` and the JSON endpoints return `value` and `default` as `null` for them (they used to return the decrypted secret, including the inherited global secret as a model's `default`)
+* the JSON endpoints ignore `null` or empty values for encrypted settings, so sending a panel back unchanged no longer wipes a stored secret
+* `settings:export` skips encrypted settings unless `--with-secrets` is passed; `settings:list` shows `(encrypted)` instead of the value
+
+### Features
+
+* panel items include `filled` (whether there is any value) and `encrypted`
+* [docs/settings-screens.md](docs/settings-screens.md): settings screens with Blade, Livewire and a JavaScript SPA
+* README: when to use the package (application settings, personal preferences, team or tenant settings) and when not to
+
 ## [2.0.0](https://github.com/metalinked/laravel-settings-kit/compare/v1.2.2...v2.0.0) (2026-10-10)
 
 Complete redesign. See [UPGRADE.md](UPGRADE.md) for the migration path and `php artisan settings:upgrade-from-v1`.
