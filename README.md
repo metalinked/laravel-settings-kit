@@ -281,6 +281,8 @@ Global endpoints answer 403 until you define the ability (the name is configurab
 Gate::define('manage-settings', fn (User $user) => $user->is_admin);
 ```
 
+The three write endpoints (`PATCH` and `DELETE`) are rate limited with the `throttle` middleware, 60 requests per minute by default. A single `PATCH` accepts at most 100 settings, and each value may be at most 10 KB once encoded as JSON; anything bigger returns a 422 before anything is written. Change these in `http.throttle` (`'attempts,minutes'`, or `null` to turn it off), `http.max_keys` and `http.max_value_bytes`.
+
 ## Events
 
 - `SettingUpdated` (`key`, `value`, `previous`, `scope`, `settable`) is dispatched after a value is stored.
@@ -306,6 +308,25 @@ By default, keys that were never defined still work as a simple untyped store, a
 ## Caching
 
 Values are cached per scope (global, or one model) in your default cache store, forever by default, and invalidated on every write. This works with every cache driver; tags are not required. Configure it in `cache` (`enabled`, `store`, `ttl`, `prefix`). The package is safe to use with Octane and queue workers: values are memoised per request and per job, never across them.
+
+### Transactions
+
+Wrap writes to several scopes in a normal database transaction when they must succeed or fail together:
+
+```php
+DB::transaction(function () use ($user) {
+    Settings::set('site_name', 'Renamed');
+    $user->settings()->set('appearance.theme', 'dark');
+});
+```
+
+If the transaction rolls back, the cached values are not left changed. `SettingUpdated` and `SettingReset` are dispatched after the commit, and the cache of each scope is cleared a second time at that point, so a request that read the old rows in the meantime does not keep them.
+
+### Size and cleanup
+
+A user's overrides live in one cache entry per user, and the global values in one more. A request reads the global entry plus the entry of each model it asks about, so the cost does not grow with the number of users, only with the number of settings one user has overridden.
+
+`settings:clear-cache` and `Settings::flushCache()` do not delete the old entries: they change the version in the cache key, and the old entries are never read again. With the default `ttl` of `null` on a store that does not evict (`file`, `database`), they stay until you clear that store. Set `cache.ttl` to a number of seconds, or use Redis or Memcached, which evict entries that are no longer used.
 
 ## Testing
 
