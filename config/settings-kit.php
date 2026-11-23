@@ -95,5 +95,15 @@ return [
     */
     'http' => [
         'global_ability' => 'manage-settings',
+
+        // Rate limit for the PATCH and DELETE endpoints, in the format of the
+        // "throttle" middleware ("attempts,minutes"). Null disables it.
+        'throttle' => '60,1',
+
+        // Largest number of settings accepted in one PATCH request.
+        'max_keys' => 100,
+
+        // Largest size, in bytes, of one value once encoded as JSON.
+        'max_value_bytes' => 10240,
     ],
 ];

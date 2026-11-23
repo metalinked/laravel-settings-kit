@@ -76,14 +76,20 @@ class SettingsManager {
      */
     public function routes(string $prefix = 'settings'): void {
         Route::prefix($prefix)->name('settings-kit.')->group(function () {
+            $throttle = config('settings-kit.http.throttle', '60,1');
+            $writes = is_string($throttle) && $throttle !== '' ? ['throttle:' . $throttle] : [];
+
             Route::get('/', [SettingsController::class, 'index'])->name('index');
-            Route::patch('/', [SettingsController::class, 'update'])->name('update');
+            Route::patch('/', [SettingsController::class, 'update'])->middleware($writes)->name('update');
             Route::get('me', [SettingsController::class, 'indexMine'])->name('me.index');
-            Route::patch('me', [SettingsController::class, 'updateMine'])->name('me.update');
-            Route::delete('me/{key?}', [SettingsController::class, 'destroyMine'])->name('me.destroy');
+            Route::patch('me', [SettingsController::class, 'updateMine'])->middleware($writes)->name('me.update');
+            Route::delete('me/{key?}', [SettingsController::class, 'destroyMine'])->middleware($writes)->name('me.destroy');
         });
     }
 
+    /**
+     * @param array<int, mixed> $arguments
+     */
     public function __call(string $method, array $arguments): mixed {
         return $this->global()->{$method}(...$arguments);
     }

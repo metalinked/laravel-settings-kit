@@ -146,6 +146,26 @@ class HttpTest extends TestCase {
             ->assertJsonValidationErrors(['site_name', 'appearance.theme']);
     }
 
+    public function test_too_many_settings_in_one_request_are_rejected(): void {
+        config(['settings-kit.http.max_keys' => 2]);
+
+        $this->actingAs($this->user)
+            ->patchJson('/api/settings/me', ['values' => ['a' => 1, 'b' => 2, 'c' => 3]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['values']);
+    }
+
+    public function test_oversized_values_are_rejected_before_anything_is_written(): void {
+        config(['settings-kit.http.max_value_bytes' => 50]);
+
+        $this->actingAs($this->user)
+            ->patchJson('/api/settings/me', ['values' => ['appearance.theme' => 'dark', 'notifications.email' => str_repeat('x', 100)]])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['notifications.email']);
+
+        $this->assertSame([], $this->user->settings()->stored());
+    }
+
     public function test_values_must_be_an_object(): void {
         $this->actingAs($this->user)->patchJson('/api/settings/me', ['values' => ['a', 'b']])
             ->assertUnprocessable()
