@@ -39,15 +39,17 @@ class Definition {
     /** @var class-string<BackedEnum>|null */
     protected ?string $enum = null;
 
-    /** @var bool|list<class-string> */
+    /** @var bool|list<string> */
     protected bool|array $overridable = false;
 
     protected ?string $group = null;
     protected ?string $label = null;
     protected ?string $description = null;
+    /** @var array<int|string, mixed> */
     protected array $rules = [];
     protected bool $nullable = false;
     protected bool $encrypted = false;
+    /** @var array<string, mixed> */
     protected array $meta = [];
     protected bool $defined = true;
 
@@ -250,6 +252,9 @@ class Definition {
     /**
      * Extra Laravel validation rules applied after type checking.
      */
+    /**
+     * @param array<int|string, mixed>|string $rules
+     */
     public function rules(array|string $rules): static {
         $this->rules = is_string($rules) ? explode('|', $rules) : $rules;
 
@@ -273,6 +278,9 @@ class Definition {
 
     /**
      * Free-form data for your UI (icon, input hint, order…). Exposed by panel().
+     */
+    /**
+     * @param array<string, mixed> $meta
      */
     public function meta(array $meta): static {
         $this->meta = $meta;
@@ -308,10 +316,16 @@ class Definition {
         return $this->group ?? (str_contains($this->key, '.') ? Str::before($this->key, '.') : 'general');
     }
 
+    /**
+     * @return array<int|string, mixed>
+     */
     public function getRules(): array {
         return $this->rules;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getMeta(): array {
         return $this->meta;
     }
@@ -356,7 +370,7 @@ class Definition {
 
     public function getLabel(): string {
         if ($this->label !== null) {
-            return (string) __($this->label);
+            return $this->lang($this->label);
         }
 
         return $this->translate('label') ?? Str::headline(Str::afterLast($this->key, '.'));
@@ -364,7 +378,7 @@ class Definition {
 
     public function getDescription(): ?string {
         if ($this->description !== null) {
-            return (string) __($this->description);
+            return $this->lang($this->description);
         }
 
         return $this->translate('description');
@@ -388,7 +402,7 @@ class Definition {
             return array_map(fn ($value) => [
                 'value' => $value,
                 'label' => isset($this->optionLabels[(string) $value])
-                    ? (string) __($this->optionLabels[(string) $value])
+                    ? $this->lang($this->optionLabels[(string) $value])
                     : ($this->translate("options.{$value}") ?? Str::headline((string) $value)),
             ], $this->options);
         }
@@ -506,7 +520,16 @@ class Definition {
     protected function translate(string $suffix): ?string {
         $key = config('settings-kit.translations', 'settings') . ".{$this->key}.{$suffix}";
 
-        return Lang::has($key) ? (string) __($key) : null;
+        return Lang::has($key) ? $this->lang($key) : null;
+    }
+
+    /**
+     * Translate a key; a key that resolves to a nested array is returned as is.
+     */
+    protected function lang(string $key): string {
+        $text = __($key);
+
+        return is_string($text) ? $text : $key;
     }
 
     protected function fail(string $reason): never {

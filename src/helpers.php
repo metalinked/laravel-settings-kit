@@ -7,6 +7,8 @@ if (!function_exists('settings')) {
      * settings()                 → the manager
      * settings('key', $default)  → a global value
      * settings(['key' => $v])    → store global values
+     *
+     * @param string|array<string, mixed>|null $key
      */
     function settings(string|array|null $key = null, mixed $default = null): mixed {
         $manager = app(SettingsManager::class);

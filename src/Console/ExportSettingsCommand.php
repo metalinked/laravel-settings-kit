@@ -33,7 +33,9 @@ class ExportSettingsCommand extends Command {
         ksort($values);
         $json = (string) json_encode((object) $values, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRESERVE_ZERO_FRACTION);
 
-        if ($path = $this->argument('path')) {
+        $path = $this->argument('path');
+
+        if (is_string($path) && $path !== '') {
             file_put_contents($path, $json . PHP_EOL);
             $this->components->info(count($values) . " setting(s) exported to {$path}.");
         } else {
