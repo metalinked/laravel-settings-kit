@@ -5,6 +5,7 @@ namespace Metalinked\LaravelSettingsKit\Console;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Metalinked\LaravelSettingsKit\Scope;
@@ -28,9 +29,9 @@ class UpgradeFromV1Command extends Command {
 
     public function handle(SettingsRepository $repository): int {
         $tables = [
-            'preferences' => (string) $this->option('preferences-table'),
-            'contents' => (string) $this->option('contents-table'),
-            'user' => (string) $this->option('user-preferences-table'),
+            'preferences' => $this->stringOption('preferences-table'),
+            'contents' => $this->stringOption('contents-table'),
+            'user' => $this->stringOption('user-preferences-table'),
         ];
 
         if (!Schema::hasTable($tables['preferences'])) {
@@ -81,7 +82,7 @@ class UpgradeFromV1Command extends Command {
 
         if (!$dryRun) {
             $this->components->bulletList([
-                "Load the definitions in config/settings-kit.php: 'settings' => require __DIR__ . '/" . basename((string) $this->option('definitions')) . "',",
+                "Load the definitions in config/settings-kit.php: 'settings' => require __DIR__ . '/" . basename($this->stringOption('definitions')) . "',",
                 'Replace Settings::get($key, $userId) calls with Settings::for($user)->get($key) or $user->settings()->get($key).',
                 'Once everything works, drop the 1.x tables: ' . implode(', ', $tables) . '.',
             ]);
@@ -90,7 +91,10 @@ class UpgradeFromV1Command extends Command {
         return self::SUCCESS;
     }
 
-    protected function definition(object $preference): array {
+    /**
+     * @return array<string, mixed>
+     */
+    protected function definition(\stdClass $preference): array {
         $type = match ($preference->type) {
             'boolean', 'integer', 'select' => $preference->type,
             'json' => 'array',
@@ -148,8 +152,11 @@ class UpgradeFromV1Command extends Command {
         };
     }
 
+    /**
+     * @param array<string, array<string, mixed>> $definitions
+     */
     protected function writeDefinitions(array $definitions, bool $dryRun): void {
-        $path = (string) $this->option('definitions');
+        $path = $this->stringOption('definitions');
         $isAbsolute = str_starts_with($path, '/') || str_starts_with($path, '\\') || (strlen($path) > 2 && $path[1] === ':');
         $path = $isAbsolute ? $path : base_path($path);
 
@@ -168,6 +175,9 @@ class UpgradeFromV1Command extends Command {
         $this->components->twoColumnDetail('Definitions', $path);
     }
 
+    /**
+     * @param array<string, array<string, array<string, string>>> $translations
+     */
     protected function writeTranslations(array $translations, bool $dryRun): void {
         $file = config('settings-kit.translations', 'settings');
 
@@ -197,7 +207,10 @@ class UpgradeFromV1Command extends Command {
         }
     }
 
-    protected function copyOverrides($preferences, string $table, SettingsRepository $repository, bool $dryRun): int {
+    /**
+     * @param Collection<int, \stdClass> $preferences
+     */
+    protected function copyOverrides(Collection $preferences, string $table, SettingsRepository $repository, bool $dryRun): int {
         if (!Schema::hasTable($table)) {
             return 0;
         }
@@ -218,7 +231,7 @@ class UpgradeFromV1Command extends Command {
                 continue;
             }
 
-            $perUser[$row->user_id][$preference->key] = json_encode(
+            $perUser[$row->user_id][$preference->key] = (string) json_encode(
                 $this->convert($preference->type, (string) $row->value),
                 JSON_PRESERVE_ZERO_FRACTION | JSON_UNESCAPED_UNICODE
             );
@@ -232,6 +245,12 @@ class UpgradeFromV1Command extends Command {
         }
 
         return $count;
+    }
+
+    protected function stringOption(string $name): string {
+        $value = $this->option($name);
+
+        return is_string($value) ? $value : '';
     }
 
     protected function ensureDirectory(string $path): void {

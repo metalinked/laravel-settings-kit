@@ -18,8 +18,8 @@ class ImportSettingsCommand extends Command {
     public function handle(SettingsManager $settings): int {
         $path = $this->argument('path');
 
-        if (!is_file($path)) {
-            $this->components->error("File not found: {$path}");
+        if (!is_string($path) || !is_file($path)) {
+            $this->components->error("File not found: " . (is_string($path) ? $path : ''));
 
             return self::FAILURE;
         }

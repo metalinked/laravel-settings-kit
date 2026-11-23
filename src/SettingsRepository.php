@@ -130,6 +130,9 @@ class SettingsRepository {
         }
     }
 
+    /**
+     * @return array<string, string>
+     */
     protected function fromCache(Scope $scope): array {
         if (!$this->cacheEnabled()) {
             return $this->load($scope);

@@ -74,6 +74,8 @@ class ScopedSettings {
      * Store one value, or several at once (set(['a' => 1, 'b' => 2])).
      * Every value is validated first; nothing is written if any fails.
      *
+     * @param string|array<string, mixed> $key
+     *
      * @throws ValidationException
      */
     public function set(string|array $key, mixed $value = null): void {
