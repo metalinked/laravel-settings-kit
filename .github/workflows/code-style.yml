@@ -30,12 +30,26 @@ jobs:
   phpstan:
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        php-version: ['8.2', '8.4']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
 
-    name: PHPStan - P${{ matrix.php-version }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.2
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Install dependencies
+        run: composer update --prefer-dist --no-interaction
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=2G
+
+  # The required status check is the job named "phpstan" above; this one only adds PHP 8.4.
+  phpstan-php84:
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -44,7 +58,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: 8.4
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
           coverage: none
 
