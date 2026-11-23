@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v2.0.1...v2.1.0) (2026-11-23)
+
+### Features
+
+* the JSON endpoints limit writes: `PATCH` and `DELETE` go through the `throttle` middleware (60 requests per minute), a `PATCH` accepts at most 100 settings, and each value may be at most 10 KB encoded as JSON. Change them with `http.throttle`, `http.max_keys` and `http.max_value_bytes`; `http.throttle` set to `null` turns the rate limit off. The defaults also apply if your published config has no such keys
+* README: writing to several scopes in one database transaction, and the cache entries that `settings:clear-cache` leaves behind on stores that do not evict (`file`, `database`)
+
+### Upgrading
+
+* if a client of the JSON endpoints sends more than 60 writes per minute, or a `PATCH` above the new limits, it now gets a 429 or a 422. Raise the limits or set `http.throttle` to `null` if that breaks something
+
+### Tests and tooling
+
+* tests for `settings:upgrade-from-v1` (dry run, orphan rows, existing files, type conversion), for cache invalidation around database transactions, and for the endpoint limits
+* PHPStan runs at level 8 (it was 5), on PHP 8.2 and 8.4
+* CI also runs the tests with the lowest supported dependencies (Laravel 11 on PHP 8.2, Laravel 13 on PHP 8.4)
+
 ## [2.0.1](https://github.com/metalinked/laravel-settings-kit/compare/v2.0.0...v2.0.1) (2026-10-10)
 
 ### Security
