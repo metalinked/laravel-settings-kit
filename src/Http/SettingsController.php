@@ -89,6 +89,7 @@ class SettingsController extends Controller {
             throw ValidationException::withMessages(['values' => 'Send an object of setting keys and values in "values".']);
         }
 
+        $this->ensureWithinLimits($values);
         $this->ensureEditable(array_map('strval', array_keys($values)), $scope);
 
         // Panels never return secrets, so a form sent back unchanged carries an
@@ -98,6 +99,32 @@ class SettingsController extends Controller {
             fn ($value, $key) => !($this->settings->definition((string) $key)?->isEncrypted() && ($value === null || $value === '')),
             ARRAY_FILTER_USE_BOTH
         );
+    }
+
+    /**
+     * Reject requests with too many settings or values that are too large.
+     *
+     * @param array<array-key, mixed> $values
+     */
+    protected function ensureWithinLimits(array $values): void {
+        $maxKeys = (int) config('settings-kit.http.max_keys', 100);
+        $maxBytes = (int) config('settings-kit.http.max_value_bytes', 10240);
+
+        if ($maxKeys > 0 && count($values) > $maxKeys) {
+            throw ValidationException::withMessages(['values' => "Send at most {$maxKeys} settings per request."]);
+        }
+
+        $errors = [];
+
+        foreach ($values as $key => $value) {
+            if ($maxBytes > 0 && strlen((string) json_encode($value)) > $maxBytes) {
+                $errors[(string) $key] = "The value of '{$key}' is larger than {$maxBytes} bytes.";
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
     }
 
     /**
