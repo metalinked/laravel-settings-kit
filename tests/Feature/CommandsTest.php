@@ -171,6 +171,118 @@ class CommandsTest extends TestCase {
         $this->assertSame(['widgets' => ['a']], $user->settings()->get('dashboard'));
     }
 
+    public function test_upgrade_from_v1_dry_run_writes_nothing(): void {
+        $this->createV1Tables();
+        $user = User::create(['name' => 'Anna']);
+        $id = DB::table('preferences')->insertGetId($this->v1Preference('theme', 'string', 'light', customizable: true));
+        DB::table('preference_contents')->insert(['preference_id' => $id, 'locale' => 'ca', 'title' => 'Tema', 'text' => null]);
+        DB::table('user_preferences')->insert(['preference_id' => $id, 'user_id' => $user->id, 'value' => 'dark']);
+
+        $this->app->useLangPath("{$this->tmp}/lang");
+
+        $this->artisan('settings:upgrade-from-v1', [
+            '--user-model' => User::class,
+            '--definitions' => "{$this->tmp}/definitions.php",
+            '--dry-run' => true,
+        ])->assertSuccessful();
+
+        $this->assertFileDoesNotExist("{$this->tmp}/definitions.php");
+        $this->assertFileDoesNotExist("{$this->tmp}/lang/ca/settings.php");
+        $this->assertSame(0, DB::table('settings_kit_values')->count());
+    }
+
+    public function test_upgrade_from_v1_skips_orphans_and_rows_without_a_user(): void {
+        $this->createV1Tables();
+        $user = User::create(['name' => 'Anna']);
+        $id = DB::table('preferences')->insertGetId($this->v1Preference('theme', 'string', 'light', customizable: true));
+        DB::table('user_preferences')->insert([
+            ['preference_id' => $id, 'user_id' => $user->id, 'value' => 'dark'],
+            ['preference_id' => 999, 'user_id' => $user->id, 'value' => 'ghost'],
+        ]);
+        DB::table('user_preferences')->insert(['preference_id' => $id, 'user_id' => null, 'value' => 'nobody']);
+        DB::table('preference_contents')->insert(['preference_id' => 999, 'locale' => 'ca', 'title' => 'Orfe', 'text' => null]);
+
+        $this->app->useLangPath("{$this->tmp}/lang");
+
+        $this->artisan('settings:upgrade-from-v1', [
+            '--user-model' => User::class,
+            '--definitions' => "{$this->tmp}/definitions.php",
+        ])->assertSuccessful();
+
+        $this->assertSame(1, DB::table('settings_kit_values')->count());
+        $this->assertSame('"dark"', DB::table('settings_kit_values')->value('value'));
+        $this->assertFileDoesNotExist("{$this->tmp}/lang/ca/settings.php");
+    }
+
+    public function test_upgrade_from_v1_keeps_an_existing_definitions_file_when_not_confirmed(): void {
+        $this->createV1Tables();
+        DB::table('preferences')->insert($this->v1Preference('theme', 'string', 'light'));
+        $definitionsPath = "{$this->tmp}/definitions.php";
+        File::put($definitionsPath, '<?php return ["mine" => true];');
+
+        $this->app->useLangPath("{$this->tmp}/lang");
+
+        $this->artisan('settings:upgrade-from-v1', ['--user-model' => User::class, '--definitions' => $definitionsPath])
+            ->expectsConfirmation("{$definitionsPath} already exists. Overwrite it?", 'no')
+            ->assertSuccessful();
+
+        $this->assertSame('<?php return ["mine" => true];', File::get($definitionsPath));
+    }
+
+    public function test_upgrade_from_v1_never_overwrites_an_existing_language_file(): void {
+        $this->createV1Tables();
+        $id = DB::table('preferences')->insertGetId($this->v1Preference('theme', 'string', 'light'));
+        DB::table('preference_contents')->insert(['preference_id' => $id, 'locale' => 'ca', 'title' => 'Tema', 'text' => '']);
+
+        $this->app->useLangPath("{$this->tmp}/lang");
+        File::ensureDirectoryExists("{$this->tmp}/lang/ca");
+        File::put("{$this->tmp}/lang/ca/settings.php", '<?php return ["mine" => true];');
+
+        $this->artisan('settings:upgrade-from-v1', [
+            '--user-model' => User::class,
+            '--definitions' => "{$this->tmp}/definitions.php",
+        ])->assertSuccessful();
+
+        $this->assertSame('<?php return ["mine" => true];', File::get("{$this->tmp}/lang/ca/settings.php"));
+        $this->assertSame(['theme' => ['label' => 'Tema']], require "{$this->tmp}/lang/ca/settings.from-v1.php");
+    }
+
+    public function test_upgrade_from_v1_converts_types_and_nullable_defaults(): void {
+        $this->createV1Tables();
+        DB::table('preferences')->insert([
+            $this->v1Preference('empty_select', 'select', 'a', options: null),
+            $this->v1Preference('count', 'integer', '15'),
+            $this->v1Preference('flag', 'boolean', 'yes'),
+            $this->v1Preference('note', 'string', null),
+            $this->v1Preference('broken_json', 'json', 'not json'),
+        ]);
+
+        $this->app->useLangPath("{$this->tmp}/lang");
+        $definitionsPath = "{$this->tmp}/definitions.php";
+
+        $this->artisan('settings:upgrade-from-v1', ['--user-model' => User::class, '--definitions' => $definitionsPath])
+            ->assertSuccessful();
+
+        $definitions = require $definitionsPath;
+
+        $this->assertSame('string', $definitions['empty_select']['type']);
+        $this->assertSame(15, $definitions['count']['default']);
+        $this->assertTrue($definitions['flag']['default']);
+        $this->assertNull($definitions['note']['default']);
+        $this->assertTrue($definitions['note']['nullable']);
+        $this->assertSame([], $definitions['broken_json']['default']);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function v1Preference(string $key, string $type, ?string $default, bool $customizable = false, ?string $options = null): array {
+        return [
+            'key' => $key, 'type' => $type, 'default_value' => $default, 'options' => $options,
+            'category' => null, 'role' => null, 'required' => false, 'is_user_customizable' => $customizable,
+        ];
+    }
+
     public function test_upgrade_from_v1_without_v1_tables_fails_cleanly(): void {
         $this->artisan('settings:upgrade-from-v1')->assertFailed();
     }
@@ -201,7 +313,8 @@ class CommandsTest extends TestCase {
         Schema::create('user_preferences', function (Blueprint $table) {
             $table->id();
             $table->foreignId('preference_id');
-            $table->unsignedBigInteger('user_id');
+            // Nullable until 1.x migration 000004 made it NOT NULL; older installs may still have NULL rows.
+            $table->unsignedBigInteger('user_id')->nullable();
             $table->text('value');
             $table->timestamps();
         });

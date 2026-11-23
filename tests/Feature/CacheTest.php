@@ -2,12 +2,15 @@
 
 namespace Metalinked\LaravelSettingsKit\Tests\Feature;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Metalinked\LaravelSettingsKit\Facades\Settings;
+use Metalinked\LaravelSettingsKit\Scope;
 use Metalinked\LaravelSettingsKit\SettingsManager;
 use Metalinked\LaravelSettingsKit\SettingsRepository;
 use Metalinked\LaravelSettingsKit\Tests\Fixtures\User;
 use Metalinked\LaravelSettingsKit\Tests\TestCase;
+use RuntimeException;
 
 class CacheTest extends TestCase {
     protected User $user;
@@ -102,6 +105,42 @@ class CacheTest extends TestCase {
         $this->newRequest();
 
         $this->assertSame(1, $this->countQueries(fn () => Settings::get('key1')));
+    }
+
+    public function test_a_stale_value_cached_during_a_transaction_is_dropped_on_commit(): void {
+        $repository = new class () extends SettingsRepository {
+            public function keyFor(Scope $scope): string {
+                return $this->cacheKey($scope);
+            }
+        };
+        $scope = Scope::global();
+        $repository->values($scope);
+
+        DB::transaction(function () use ($repository, $scope) {
+            $repository->put($scope, ['key1' => '111']);
+
+            // Another request reads before the commit and caches the old rows.
+            Cache::put($repository->keyFor($scope), [], 60);
+        });
+
+        $this->newRequest();
+        $this->assertSame(111, Settings::get('key1'));
+    }
+
+    public function test_a_rolled_back_write_does_not_leave_its_value_in_the_cache(): void {
+        Settings::get('key1');
+
+        try {
+            DB::transaction(function () {
+                Settings::set('key1', 5);
+
+                throw new RuntimeException('abort');
+            });
+        } catch (RuntimeException) {
+        }
+
+        $this->newRequest();
+        $this->assertSame(1, Settings::get('key1'));
     }
 
     public function test_manager_and_repository_are_request_scoped(): void {
