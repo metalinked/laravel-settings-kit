@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v2.1.0...v2.2.0) (2026-11-25)
+
+### Features
+
+* `fill()` saves a submitted form in one call: an empty field keeps an encrypted value and removes the stored value of a nullable setting. With a `field => key` map it reads the values by field name
+* `rules()` returns validation rules for form fields that hold settings, and follows the custom messages and attribute names of the validator
+* `applyConfig()` and the `config` definition option write stored values into Laravel's configuration
+* the package's error messages are translated (English, Catalan and Spanish) and can be published with `--tag=settings-kit-lang`
+
+### Bug Fixes
+
+* values read inside a database transaction that may be rolled back are no longer cached
+* boolean settings no longer accept an empty string as `false`
+
+### Upgrading
+
+* error messages follow the app locale. They name the setting by its label instead of its key, and list the labels of `select` and `enum` options instead of their values. Update tests or clients that compare the text
+* `set()`, the JSON endpoints and `settings:import` now reject `""` for a boolean setting. A `null` or empty value of a mandatory setting is reported as required
+
 ## [2.1.0](https://github.com/metalinked/laravel-settings-kit/compare/v2.0.1...v2.1.0) (2026-11-23)
 
 ### Features

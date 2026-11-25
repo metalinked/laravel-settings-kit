@@ -223,17 +223,19 @@ Settings::fill($request->input('settings', []));      // global values
 $user->settings()->fill($request->input('settings', []));  // a user's overrides
 ```
 
-The array maps setting keys to values. An empty field is `null` or `""`, and it is handled according to the definition:
+The array maps setting keys to values. In HTML, name each input after its key, as in `name="settings[mail.port]"`. Because of the dot, `old('settings.mail.port')` returns `null`: use `old('settings')['mail.port'] ?? $current`. [docs/settings-screens.md](docs/settings-screens.md) has a complete form.
+
+An empty field is `null` or `""`, and it is handled according to the definition:
 
 | Setting | What an empty field does |
 |---|---|
 | `encrypted` | Keeps the stored value. |
 | `nullable` | Removes the stored value, so it falls back to the global value or the default. |
-| Any other | Is validated like any value: a `string` accepts `""`, while `null` and empty numbers are errors. |
+| Any other | A `string` accepts `""`. `null`, and `""` for every other type, are reported as a missing value. |
 
 Keys that are not in the array are left alone. An unchecked checkbox sends nothing, so add a hidden field with `0` before it.
 
-Everything is checked before anything is written, and the writes and removals run in one database transaction. Errors are thrown as a `ValidationException` keyed by setting. Keys that are not defined, or that the model may not override, are errors too, even outside strict mode, so request input can be passed in. `fill()` accepts any defined setting of the scope: if a form must only change some of them, pick those keys first.
+Everything is checked before anything is written, and the writes and removals run in one database transaction. Errors are thrown as a `ValidationException` keyed by setting. Keys that are not defined, or that the model may not override, are errors too, even outside strict mode, so request input can be passed in. If the input is not an array, the error is keyed `settings`. `fill()` accepts any defined setting of the scope: if a form must only change some of them, pick those keys first.
 
 `set()` differs on purpose: it stores exactly what you give it, including `null` and `""`.
 
@@ -250,19 +252,24 @@ $data = $request->validate([
     ]),
 ]);
 
-Settings::fill([
-    'points.conversion' => $data['conversion'],
-    'mail.reply_to' => $data['reply_to'] ?? null,
+Settings::fill($data, [
+    'conversion' => 'points.conversion',
+    'reply_to' => 'mail.reply_to',
 ]);
 ```
 
+With the same `field => key` map as a second argument, `fill()` reads the values by field name and ignores the rest of the data, such as `title`. A field that is missing from the data is left alone.
+
 - A field passes when `fill()` would accept it, with the same type conversion and the setting's `rules`. Empty fields are allowed for `encrypted` and `nullable` settings.
 - Errors are keyed by the field name, so `@error('conversion')` works. The message names the setting by its label.
+- The custom messages and attribute names of `validate()` apply, such as `['conversion.min' => 'Too low.']` and `['conversion' => 'rate']`. A type error takes the custom message of the matching rule (`boolean`, `integer`, `numeric`, `string`, `array`, `in` or `required`).
 - A missing field is rejected unless the setting is `nullable` or `encrypted`. For optional fields, put `sometimes` first: `['sometimes', ...Settings::rules(['conversion' => 'points.conversion'])['conversion']]`.
 - Field names follow Laravel's dot notation, so avoid literal dots in them.
 - `$user->settings()->rules([...])` also checks that the user may override each setting.
 
 Nothing is saved by validating.
+
+An empty field keeps an encrypted value. To let a form delete one, call `forget()` after `fill()`, with both inside a `DB::transaction()`.
 
 ## Validation and error messages
 
@@ -273,11 +280,13 @@ try {
     $user->settings()->set($request->input('settings'));
 } catch (ValidationException $e) {
     // $e->errors() is keyed by setting:
-    // ['appearance.theme' => ['The appearance.theme setting must be one of: light, dark, auto.']]
+    // ['appearance.theme' => ['The Theme setting must be one of: Light, Dark, Auto.']]
 }
 ```
 
 When several values are set at once, they are all validated before anything is written.
+
+Errors are keyed by setting. Their messages use the setting's label and, for a `select` or `enum`, the labels of its options.
 
 Messages from your `rules` use Laravel's validation translations. The package's own messages (type errors and endpoint errors) come in English, Catalan and Spanish, follow the app locale and fall back to the fallback locale, then to English. To change them or add a language, publish them to `lang/vendor/settings-kit`:
 
@@ -307,7 +316,7 @@ Settings::applyConfig();                        // every setting with a `config`
 Settings::applyConfig(['mail.from_address']);   // only these
 ```
 
-Only stored values are written. A setting with nothing stored leaves the configuration as your files and `.env` define it, and if an earlier call had overwritten it, the original value is restored.
+Only stored values are written. A setting with nothing stored leaves the configuration as your files and `.env` define it, and if an earlier call had overwritten it, the original value is restored. For a `nullable` setting, a stored `null` or `""` counts as nothing stored.
 
 ### When to call it
 
@@ -318,8 +327,10 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 
 public function boot(): void {
-    $this->app->resolving('mail.manager', function () {
-        Settings::applyConfig(['mail.from_address']);
+    // Runs when the mail manager is built, or now if it already is.
+    $this->callAfterResolving('mail.manager', function () {
+        // The table does not exist yet on a fresh install.
+        rescue(fn () => Settings::applyConfig(['mail.from_address']));
     });
 
     // Queue workers live for many jobs, and Laravel keeps the mailers it built.

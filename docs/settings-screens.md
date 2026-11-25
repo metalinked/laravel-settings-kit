@@ -213,7 +213,7 @@ export async function savePreferences(changes) {
         return { panel: data.data, errors: {} };
     } catch (error) {
         if (error.response?.status === 422) {
-            // { "appearance.theme": ["The Theme setting must be one of: light, dark."] }
+            // { "appearance.theme": ["The Theme setting must be one of: Light, Dark."] }
             return { panel: null, errors: error.response.data.errors };
         }
         throw error;

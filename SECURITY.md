@@ -2,12 +2,13 @@
 
 ## Supported versions
 
-Only the latest release receives security fixes.
+Security fixes go into the latest 2.x release and into the `1.x` branch.
 
 | Version | Supported |
 |---|---|
-| 1.2.x | Yes |
-| < 1.2 | No |
+| Latest 2.x release | Yes |
+| 1.2.x | Security fixes only |
+| Anything older | No |
 
 ## Reporting a vulnerability
 
