@@ -80,10 +80,10 @@ class SettingsManager {
             $writes = is_string($throttle) && $throttle !== '' ? ['throttle:' . $throttle] : [];
 
             Route::get('/', [SettingsController::class, 'index'])->name('index');
-            Route::patch('/', [SettingsController::class, 'update'])->middleware($writes)->name('update');
+            Route::patch('/', [SettingsController::class, 'update'])->name('update')->middleware($writes);
             Route::get('me', [SettingsController::class, 'indexMine'])->name('me.index');
-            Route::patch('me', [SettingsController::class, 'updateMine'])->middleware($writes)->name('me.update');
-            Route::delete('me/{key?}', [SettingsController::class, 'destroyMine'])->middleware($writes)->name('me.destroy');
+            Route::patch('me', [SettingsController::class, 'updateMine'])->name('me.update')->middleware($writes);
+            Route::delete('me/{key?}', [SettingsController::class, 'destroyMine'])->name('me.destroy')->middleware($writes);
         });
     }
 
