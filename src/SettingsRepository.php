@@ -16,13 +16,27 @@ class SettingsRepository {
     /** @var array<string, array<string, string>> scope suffix => [key => raw value] */
     protected array $loaded = [];
 
+    /** @var array<string, true> scopes written by a transaction that is still open */
+    protected array $uncommitted = [];
+
     protected ?string $version = null;
 
     /**
      * @return array<string, string>
      */
     public function values(Scope $scope): array {
-        return $this->loaded[$scope->cacheSuffix()] ??= $this->fromCache($scope);
+        $suffix = $scope->cacheSuffix();
+
+        if (isset($this->uncommitted[$suffix])) {
+            // These rows may still be rolled back: read them, but keep no copy.
+            if (DB::transactionLevel() > 0) {
+                return $this->load($scope);
+            }
+
+            unset($this->uncommitted[$suffix]);
+        }
+
+        return $this->loaded[$suffix] ??= $this->fromCache($scope);
     }
 
     /**
@@ -158,17 +172,25 @@ class SettingsRepository {
     }
 
     protected function forgetScope(Scope $scope): void {
-        unset($this->loaded[$scope->cacheSuffix()]);
+        $suffix = $scope->cacheSuffix();
+        $key = $this->cacheEnabled() ? $this->cacheKey($scope) : null;
 
-        if (!$this->cacheEnabled()) {
-            return;
+        unset($this->loaded[$suffix]);
+        $this->uncommitted[$suffix] = true;
+
+        if ($key !== null) {
+            $this->cache()->forget($key);
         }
 
-        $key = $this->cacheKey($scope);
-        $this->cache()->forget($key);
+        // Runs at once outside a transaction. Forgets the key a second time
+        // because another request may have cached the old rows before the commit.
+        DB::afterCommit(function () use ($suffix, $key) {
+            unset($this->uncommitted[$suffix], $this->loaded[$suffix]);
 
-        // A read between this write and the commit could re-cache the old value.
-        DB::afterCommit(fn () => $this->cache()->forget($key));
+            if ($key !== null) {
+                $this->cache()->forget($key);
+            }
+        });
     }
 
     protected function cacheKey(Scope $scope): string {
