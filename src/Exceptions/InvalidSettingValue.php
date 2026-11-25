@@ -27,6 +27,13 @@ class InvalidSettingValue extends InvalidArgumentException {
     }
 
     /**
+     * The line of the package's messages file, if the message comes from one.
+     */
+    public function messageLine(): ?string {
+        return $this->messageLine;
+    }
+
+    /**
      * The same message, calling the setting by another name (such as its label).
      */
     public function messageFor(string $name): string {

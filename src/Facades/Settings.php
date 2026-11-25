@@ -12,7 +12,7 @@ use Metalinked\LaravelSettingsKit\SettingsManager;
  * @method static void set(string|array<string, mixed> $key, mixed $value = null)
  * @method static bool has(string $key)
  * @method static void forget(string|list<string> $keys)
- * @method static void fill(array<array-key, mixed> $values)
+ * @method static void fill(mixed $values, ?array<array-key, string> $fields = null)
  * @method static array<string, list<\Metalinked\LaravelSettingsKit\Rules\SettingRule>> rules(array<array-key, string> $fields)
  * @method static void applyConfig(?list<string> $keys = null)
  * @method static int reset()

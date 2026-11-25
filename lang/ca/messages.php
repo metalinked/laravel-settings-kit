@@ -2,7 +2,7 @@
 
 return [
     // Values that do not fit the type of their setting.
-    'not_null' => 'El paràmetre :key no pot ser nul.',
+    'required' => 'El paràmetre :key és obligatori.',
     'string' => 'El paràmetre :key ha de ser un text.',
     'boolean' => 'El paràmetre :key ha de ser cert o fals.',
     'integer' => 'El paràmetre :key ha de ser un nombre enter.',
@@ -10,7 +10,8 @@ return [
     'array' => 'El paràmetre :key ha de ser una llista.',
     'one_of' => 'El paràmetre :key ha de ser un d’aquests valors: :values.',
 
-    // Keys that cannot be written from user input.
+    // Input that cannot be written.
+    'not_array' => 'Envia els paràmetres com una llista de claus i valors.',
     'unknown' => "El paràmetre ':key' no existeix.",
     'not_editable' => "El paràmetre ':key' no es pot canviar aquí.",
 

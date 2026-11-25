@@ -46,9 +46,9 @@ class TranslationsTest extends TestCase {
      */
     public static function locales(): array {
         return [
-            'en' => ['en', 'The items setting must be an integer.'],
-            'ca' => ['ca', 'El paràmetre items ha de ser un nombre enter.'],
-            'es' => ['es', 'El ajuste items debe ser un número entero.'],
+            'en' => ['en', 'The Items setting must be an integer.'],
+            'ca' => ['ca', 'El paràmetre Items ha de ser un nombre enter.'],
+            'es' => ['es', 'El ajuste Items debe ser un número entero.'],
         ];
     }
 
@@ -56,14 +56,14 @@ class TranslationsTest extends TestCase {
         app()->setLocale('fr');
         app('translator')->setFallback('de');
 
-        $this->assertSame('The items setting must be an integer.', $this->error());
+        $this->assertSame('The Items setting must be an integer.', $this->error());
     }
 
     public function test_the_fallback_locale_wins_over_english(): void {
         app()->setLocale('fr');
         app('translator')->setFallback('ca');
 
-        $this->assertSame('El paràmetre items ha de ser un nombre enter.', $this->error());
+        $this->assertSame('El paràmetre Items ha de ser un nombre enter.', $this->error());
     }
 
     public function test_an_application_can_override_a_message(): void {
@@ -71,7 +71,7 @@ class TranslationsTest extends TestCase {
         Lang::get('settings-kit::messages.integer');
         Lang::addLines(['messages.integer' => ':key: whole numbers only.'], 'en', 'settings-kit');
 
-        $this->assertSame('items: whole numbers only.', $this->error());
+        $this->assertSame('Items: whole numbers only.', $this->error());
     }
 
     public function test_endpoint_errors_are_translated(): void {

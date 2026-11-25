@@ -3,6 +3,7 @@
 namespace Metalinked\LaravelSettingsKit;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -109,13 +110,36 @@ class ScopedSettings {
      * nullable setting so it falls back again. Keys that are not in the array
      * are left alone. Every field is checked before anything is written, and
      * keys that are undefined or not overridable here are validation errors,
-     * so user input can be passed in.
+     * so user input can be passed in. Anything but an array is one too.
      *
-     * @param array<array-key, mixed> $values setting key => value
+     * With the field => key map given to rules(), $values is read by field name
+     * (such as the validated data of a request) and errors use those names.
+     *
+     * @param mixed $values setting key => value, or field name => value with $fields
+     * @param array<array-key, string>|null $fields field name => setting key
      *
      * @throws ValidationException
      */
-    public function fill(array $values): void {
+    public function fill(mixed $values, ?array $fields = null): void {
+        if (!is_array($values)) {
+            throw ValidationException::withMessages(['settings' => [Messages::get('not_array')]]);
+        }
+
+        $names = [];
+
+        if ($fields !== null) {
+            $input = [];
+
+            foreach ($this->definitionsOfFields($fields, 'fill') as $field => $definition) {
+                if (Arr::has($values, $field)) {
+                    $input[$definition->key] = Arr::get($values, $field);
+                    $names[$definition->key] = $field;
+                }
+            }
+
+            $values = $input;
+        }
+
         $definitions = [];
         $filled = [];
         $blank = [];
@@ -139,7 +163,13 @@ class ScopedSettings {
         [$normalized, $invalid] = $this->check($definitions, $filled);
 
         if ($errors + $invalid !== []) {
-            throw ValidationException::withMessages($errors + $invalid);
+            $messages = [];
+
+            foreach ($errors + $invalid as $k => $message) {
+                $messages[$names[$k] ?? $k] = $message;
+            }
+
+            throw ValidationException::withMessages($messages);
         }
 
         DB::transaction(function () use ($definitions, $normalized, $blank) {
@@ -158,29 +188,17 @@ class ScopedSettings {
      * @return array<string, list<SettingRule>>
      */
     public function rules(array $fields): array {
-        $rules = [];
-
-        foreach ($fields as $field => $key) {
-            if (!is_string($field)) {
-                throw new InvalidArgumentException("Pass rules() an array of field name => setting key, such as ['field' => '{$key}'].");
-            }
-
-            $definition = $this->registry->get($key) ?? throw UndefinedSettingException::for($key);
-
-            if (!$this->usesOwnValue($definition)) {
-                throw SettingNotOverridableException::for($key, $this->scope->modelClass());
-            }
-
-            $rules[$field] = [new SettingRule($definition)];
-        }
-
-        return $rules;
+        return array_map(
+            fn (Definition $definition) => [new SettingRule($definition)],
+            $this->definitionsOfFields($fields, 'rules')
+        );
     }
 
     /**
      * Write stored values into Laravel's configuration, for settings that
      * declare a "config" key. A setting with nothing stored leaves the
-     * configuration alone, undoing what an earlier call wrote.
+     * configuration alone, undoing what an earlier call wrote. For a nullable
+     * setting, a stored null or "" counts as nothing stored.
      *
      * @param list<string>|null $keys every setting with a "config" key when null
      */
@@ -354,20 +372,57 @@ class ScopedSettings {
 
     /**
      * The value stored for this scope, or else for the global one; $fallback
-     * when neither stores a usable value.
+     * when neither stores a usable value. Null and "" are not usable values of
+     * a nullable setting.
      */
     protected function storedValue(Definition $definition, mixed $fallback): mixed {
-        $global = $this->globalValue($definition, $fallback);
+        $scopes = [Scope::global()];
 
-        if (!$this->usesOwnValue($definition)) {
-            return $global;
+        if (!$this->scope->isGlobal() && $this->usesOwnValue($definition)) {
+            $scopes[] = $this->scope;
         }
 
-        $own = $this->repository->values($this->scope);
+        $result = $fallback;
 
-        return array_key_exists($definition->key, $own)
-            ? $definition->decode($own[$definition->key], $global)
-            : $global;
+        foreach ($scopes as $scope) {
+            $values = $this->repository->values($scope);
+
+            if (!array_key_exists($definition->key, $values)) {
+                continue;
+            }
+
+            $value = $definition->decode($values[$definition->key], $result);
+
+            if (!$definition->isNullable() || ($value !== null && $value !== '')) {
+                $result = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array<array-key, string> $fields field name => setting key
+     * @return array<string, Definition> by field name
+     */
+    protected function definitionsOfFields(array $fields, string $method): array {
+        $definitions = [];
+
+        foreach ($fields as $field => $key) {
+            if (!is_string($field)) {
+                throw new InvalidArgumentException("Pass {$method}() an array of field name => setting key, such as ['field' => '{$key}'].");
+            }
+
+            $definition = $this->registry->get($key) ?? throw UndefinedSettingException::for($key);
+
+            if (!$this->usesOwnValue($definition)) {
+                throw SettingNotOverridableException::for($key, $this->scope->modelClass());
+            }
+
+            $definitions[$field] = $definition;
+        }
+
+        return $definitions;
     }
 
     /**
@@ -383,7 +438,7 @@ class ScopedSettings {
             try {
                 $valid[$key] = $definitions[$key]->validate($value);
             } catch (InvalidSettingValue $e) {
-                $errors[$key] = [$e->getMessage()];
+                $errors[$key] = [$e->messageFor($definitions[$key]->getLabel())];
             } catch (ValidationException $e) {
                 $errors[$key] = $e->validator->errors()->all();
             }

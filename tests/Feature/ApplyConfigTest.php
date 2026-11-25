@@ -90,12 +90,18 @@ class ApplyConfigTest extends TestCase {
         $this->assertSame('env@example.com', config('mail.from.address'));
     }
 
-    public function test_a_stored_null_is_applied(): void {
-        Settings::set('mail.from_address', null);
+    public function test_a_stored_null_or_empty_value_of_a_nullable_setting_is_not_applied(): void {
+        config(['mail.from.address' => 'env@example.com']);
 
-        Settings::applyConfig();
+        foreach ([null, ''] as $blank) {
+            Settings::set('mail.from_address', 'db@example.com');
+            Settings::applyConfig();
+            $this->assertSame('db@example.com', config('mail.from.address'));
 
-        $this->assertNull(config('mail.from.address'));
+            Settings::set('mail.from_address', $blank);
+            Settings::applyConfig();
+            $this->assertSame('env@example.com', config('mail.from.address'));
+        }
     }
 
     public function test_encrypted_and_enum_values_are_applied_as_plain_values(): void {
