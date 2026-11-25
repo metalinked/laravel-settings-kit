@@ -443,9 +443,25 @@ class Definition {
      */
     public function normalize(mixed $value): mixed {
         if ($value === null) {
-            return $this->nullable ? null : $this->fail('not_null');
+            return $this->nullable ? null : $this->fail('required');
         }
 
+        try {
+            return $this->cast($value);
+        } catch (InvalidSettingValue $e) {
+            // An empty field of a mandatory setting is missing, not mistyped.
+            if ($value === '' && !$this->nullable) {
+                $this->fail('required');
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * @throws InvalidSettingValue
+     */
+    protected function cast(mixed $value): mixed {
         return match ($this->type) {
             self::UNTYPED => $value,
             'string' => is_scalar($value) || $value instanceof Stringable
@@ -453,7 +469,7 @@ class Definition {
                 : $this->fail('string'),
             'boolean' => is_bool($value)
                 ? $value
-                : (is_scalar($value) ? filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null)
+                : (is_scalar($value) && trim((string) $value) !== '' ? filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null)
                     ?? $this->fail('boolean'),
             'integer' => is_int($value)
                 ? $value
@@ -473,10 +489,13 @@ class Definition {
     /**
      * Normalise a value and check it against the setting's rules.
      *
+     * @param array<string, mixed> $messages custom messages for the extra rules, under the attribute "value"
+     * @param string|null $name how messages call the setting; its label when null
+     *
      * @throws InvalidSettingValue
      * @throws ValidationException
      */
-    public function validate(mixed $value): mixed {
+    public function validate(mixed $value, array $messages = [], ?string $name = null): mixed {
         $value = $this->normalize($value);
 
         if ($this->rules === []) {
@@ -496,8 +515,8 @@ class Definition {
         Validator::make(
             ['value' => self::export($value)],
             ['value' => array_merge($value === null ? ['nullable'] : [], $typeRule ? [$typeRule] : [], $this->rules)],
-            [],
-            ['value' => $this->getLabel()]
+            $messages,
+            ['value' => $name ?? $this->getLabel()]
         )->validate();
 
         return $value;
@@ -555,7 +574,7 @@ class Definition {
             }
         }
 
-        return $this->fail('one_of', ['values' => implode(', ', $this->options)]);
+        return $this->failOneOf();
     }
 
     protected function matchEnum(mixed $value): BackedEnum {
@@ -576,7 +595,11 @@ class Definition {
             }
         }
 
-        return $this->fail('one_of', ['values' => implode(', ', array_map(fn ($case) => $case->value, $cases))]);
+        return $this->failOneOf();
+    }
+
+    protected function failOneOf(): never {
+        $this->fail('one_of', ['values' => implode(', ', array_column($this->getOptions(), 'label'))]);
     }
 
     protected function translate(string $suffix): ?string {

@@ -2,7 +2,7 @@
 
 return [
     // Values that do not fit the type of their setting.
-    'not_null' => 'The :key setting cannot be null.',
+    'required' => 'The :key setting is required.',
     'string' => 'The :key setting must be a string.',
     'boolean' => 'The :key setting must be true or false.',
     'integer' => 'The :key setting must be an integer.',
@@ -10,7 +10,8 @@ return [
     'array' => 'The :key setting must be an array.',
     'one_of' => 'The :key setting must be one of: :values.',
 
-    // Keys that cannot be written from user input.
+    // Input that cannot be written.
+    'not_array' => 'Send the settings as a list of keys and values.',
     'unknown' => "Unknown setting ':key'.",
     'not_editable' => "The setting ':key' cannot be changed here.",
 
