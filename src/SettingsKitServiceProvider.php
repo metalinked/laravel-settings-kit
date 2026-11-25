@@ -22,12 +22,15 @@ class SettingsKitServiceProvider extends ServiceProvider {
 
         // Stored values are memoised per request / queued job (Octane-safe).
         $this->app->scoped(SettingsRepository::class);
+        // Remembers what applyConfig() overwrote, for as long as the config lives.
+        $this->app->singleton(ConfigBridge::class);
         $this->app->scoped(SettingsManager::class);
         $this->app->alias(SettingsManager::class, 'settings-kit');
     }
 
     public function boot(): void {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
+        $this->loadTranslationsFrom(__DIR__ . '/../lang', 'settings-kit');
 
         Blade::directive('setting', function (string $expression) {
             return "<?php echo e(\\Metalinked\\LaravelSettingsKit\\Definition::export(app(\\Metalinked\\LaravelSettingsKit\\SettingsManager::class)->get({$expression}))); ?>";
@@ -41,6 +44,10 @@ class SettingsKitServiceProvider extends ServiceProvider {
             $this->publishes([
                 __DIR__ . '/../database/migrations' => database_path('migrations'),
             ], 'settings-kit-migrations');
+
+            $this->publishes([
+                __DIR__ . '/../lang' => $this->app->langPath('vendor/settings-kit'),
+            ], 'settings-kit-lang');
 
             $this->commands([
                 ListSettingsCommand::class,

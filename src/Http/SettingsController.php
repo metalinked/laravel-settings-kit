@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
+use Metalinked\LaravelSettingsKit\Messages;
 use Metalinked\LaravelSettingsKit\ScopedSettings;
 use Metalinked\LaravelSettingsKit\SettingsManager;
 
@@ -86,7 +87,7 @@ class SettingsController extends Controller {
         $values = $request->json('values', $request->input('values'));
 
         if (!is_array($values) || $values === [] || array_is_list($values)) {
-            throw ValidationException::withMessages(['values' => 'Send an object of setting keys and values in "values".']);
+            throw ValidationException::withMessages(['values' => Messages::get('values_object')]);
         }
 
         $this->ensureWithinLimits($values);
@@ -111,14 +112,14 @@ class SettingsController extends Controller {
         $maxBytes = (int) config('settings-kit.http.max_value_bytes', 10240);
 
         if ($maxKeys > 0 && count($values) > $maxKeys) {
-            throw ValidationException::withMessages(['values' => "Send at most {$maxKeys} settings per request."]);
+            throw ValidationException::withMessages(['values' => Messages::get('too_many', ['max' => $maxKeys])]);
         }
 
         $errors = [];
 
         foreach ($values as $key => $value) {
             if ($maxBytes > 0 && strlen((string) json_encode($value)) > $maxBytes) {
-                $errors[(string) $key] = "The value of '{$key}' is larger than {$maxBytes} bytes.";
+                $errors[(string) $key] = Messages::get('too_large', ['key' => $key, 'max' => $maxBytes]);
             }
         }
 
@@ -141,9 +142,9 @@ class SettingsController extends Controller {
             $definition = $this->settings->definition($key);
 
             if ($definition === null) {
-                $errors[$key] = "Unknown setting '{$key}'.";
+                $errors[$key] = Messages::get('unknown', ['key' => $key]);
             } elseif (!$scope->scope()->isGlobal() && !$definition->isOverridableBy($modelClass)) {
-                $errors[$key] = "The setting '{$key}' cannot be changed here.";
+                $errors[$key] = Messages::get('not_editable', ['key' => $key]);
             }
         }
 
