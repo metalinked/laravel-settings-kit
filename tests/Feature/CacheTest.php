@@ -143,6 +143,53 @@ class CacheTest extends TestCase {
         $this->assertSame(1, Settings::get('key1'));
     }
 
+    public function test_a_rollback_after_reading_inside_the_transaction_leaves_nothing_behind(): void {
+        Settings::get('key1');
+
+        $this->rollBack(function () {
+            Settings::set('key1', 5);
+            $this->assertSame(5, Settings::get('key1'));
+        });
+
+        $this->assertSame(1, Settings::get('key1'), 'same request');
+        $this->newRequest();
+        $this->assertSame(1, Settings::get('key1'), 'next request');
+    }
+
+    public function test_a_rolled_back_write_to_two_scopes_leaves_nothing_behind(): void {
+        $this->rollBack(function () {
+            Settings::set('key1', 5);
+            $this->user->settings()->set('key2', 6);
+        });
+
+        $this->newRequest();
+        $this->assertSame(1, Settings::get('key1'));
+        $this->assertSame(2, $this->user->settings()->get('key2'));
+    }
+
+    public function test_a_committed_transaction_is_cached_again(): void {
+        DB::transaction(function () {
+            Settings::set('key1', 5);
+            $this->assertSame(5, Settings::get('key1'));
+        });
+
+        Settings::get('key1');
+        $this->newRequest();
+
+        $this->assertSame(0, $this->countQueries(fn () => $this->assertSame(5, Settings::get('key1'))));
+    }
+
+    protected function rollBack(callable $callback): void {
+        try {
+            DB::transaction(function () use ($callback) {
+                $callback();
+
+                throw new RuntimeException('abort');
+            });
+        } catch (RuntimeException) {
+        }
+    }
+
     public function test_manager_and_repository_are_request_scoped(): void {
         $manager = app(SettingsManager::class);
         $repository = app(SettingsRepository::class);
