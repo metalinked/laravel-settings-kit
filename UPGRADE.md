@@ -1,6 +1,6 @@
 # Upgrading from 1.x to 2.0
 
-Version 2 changes where settings are described. In 1.x every setting was a row in the `preferences` table. In 2.x settings are **defined in code** (config file or `Settings::define()`), and the database only stores values that differ from the default, in a single table (`settings_kit_values`).
+Version 2 changes where settings are described. In 1.x every setting was a row in the `preferences` table. In 2.x settings are **defined in code** (config file or `Settings::define()`), and the database only stores the values that are saved, in a single table (`settings_kit_values`).
 
 Requirements are now PHP 8.2+ and Laravel 11+. Projects on older versions can stay on the `1.x` branch, which keeps receiving security fixes.
 

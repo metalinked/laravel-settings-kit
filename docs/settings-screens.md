@@ -25,10 +25,12 @@ Each panel item looks like this (see the README for every field):
 Three rules apply to every screen:
 
 1. **Render by `type`**: `boolean` is a checkbox, `select` a dropdown, `integer` and `float` number inputs, anything else a text input. `array` settings need a widget of their own and are left out here.
-2. **Secrets are write-only.** For `encrypted` settings, `value` is always `null`. Show `filled` ("configured" or not) and only send a value when the user types a new one.
+2. **Secrets are write-only.** For `encrypted` settings, `value` is always `null`. Show `filled` ("configured" or not): `fill()` keeps the stored secret when the field comes back empty.
 3. **Errors are keyed by setting**, e.g. `appearance.theme`, so you can show them next to each field.
 
-The same code works for a global admin screen: use `Settings::panel()` and `Settings::set()` instead of `$user->settings()`, behind your own authorization.
+The same code works for a global admin screen: use `Settings::panel()` and `Settings::fill()` instead of `$user->settings()`, behind your own authorization.
+
+Saving a form stores every field it sends, including those that still show an inherited value. An empty field of a `nullable` setting removes the stored value instead. See "Forms" in the README.
 
 ## Blade
 
@@ -48,18 +50,9 @@ class PreferencesController extends Controller {
     }
 
     public function update(Request $request): RedirectResponse {
-        $settings = $request->user()->settings();
-        $values = $request->input('settings', []);
-
-        // An empty secret field means "keep the current value".
-        foreach ($settings->panel() as $item) {
-            if ($item['encrypted'] && blank($values[$item['key']] ?? null)) {
-                unset($values[$item['key']]);
-            }
-        }
-
         // Validates everything first; on failure Laravel redirects back with the errors.
-        $settings->set($values);
+        // Empty secrets are kept, and empty nullable fields go back to the inherited value.
+        $request->user()->settings()->fill($request->input('settings', []));
 
         return back()->with('status', 'Preferences saved.');
     }
@@ -142,15 +135,13 @@ class Preferences extends Component {
         $values = [];
 
         foreach ($this->panel as $i => $item) {
-            if ($item['type'] === 'array' || ($item['encrypted'] && blank($this->values[$i] ?? null))) {
-                continue;
+            if ($item['type'] !== 'array') {
+                $values[$item['key']] = $this->values[$i] ?? null;
             }
-
-            $values[$item['key']] = $this->values[$i] ?? null;
         }
 
         // A ValidationException fills the error bag, keyed by setting.
-        auth()->user()->settings()->set($values);
+        auth()->user()->settings()->fill($values);
 
         unset($this->panel);
         $this->values = array_column($this->panel, 'value');
