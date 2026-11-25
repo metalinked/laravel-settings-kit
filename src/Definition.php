@@ -6,7 +6,9 @@ use BackedEnum;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Metalinked\LaravelSettingsKit\Exceptions\InvalidSettingValue;
 use Stringable;
@@ -23,7 +25,7 @@ class Definition {
 
     protected const ARRAY_KEYS = [
         'type', 'default', 'options', 'enum', 'overridable', 'group', 'label',
-        'description', 'rules', 'nullable', 'encrypted', 'meta',
+        'description', 'rules', 'nullable', 'encrypted', 'meta', 'config',
     ];
 
     protected string $type = 'string';
@@ -49,6 +51,7 @@ class Definition {
     protected array $rules = [];
     protected bool $nullable = false;
     protected bool $encrypted = false;
+    protected ?string $configPath = null;
     /** @var array<string, mixed> */
     protected array $meta = [];
     protected bool $defined = true;
@@ -90,7 +93,7 @@ class Definition {
         $overridable = $config['overridable'] ?? false;
         is_array($overridable) ? $definition->overridable(...$overridable) : $definition->overridable($overridable);
 
-        foreach (['group', 'label', 'description'] as $option) {
+        foreach (['group', 'label', 'description', 'config'] as $option) {
             if (isset($config[$option])) {
                 $definition->{$option}($config[$option]);
             }
@@ -288,6 +291,20 @@ class Definition {
         return $this;
     }
 
+    /**
+     * The Laravel configuration key that ScopedSettings::applyConfig() writes
+     * this setting's stored value to, such as "mail.from.address".
+     */
+    public function config(string $path): static {
+        if ($path === '') {
+            throw new InvalidArgumentException("The config key of setting '{$this->key}' cannot be empty.");
+        }
+
+        $this->configPath = $path;
+
+        return $this;
+    }
+
     // ------------------------------------------------------------------
     // Accessors
     // ------------------------------------------------------------------
@@ -341,6 +358,10 @@ class Definition {
 
     public function isEncrypted(): bool {
         return $this->encrypted;
+    }
+
+    public function getConfig(): ?string {
+        return $this->configPath;
     }
 
     public function isOverridable(): bool {
@@ -422,31 +443,72 @@ class Definition {
      */
     public function normalize(mixed $value): mixed {
         if ($value === null) {
-            return $this->nullable ? null : throw new InvalidSettingValue("The {$this->key} setting cannot be null.");
+            return $this->nullable ? null : $this->fail('not_null');
         }
 
         return match ($this->type) {
             self::UNTYPED => $value,
             'string' => is_scalar($value) || $value instanceof Stringable
                 ? (string) $value
-                : $this->fail('must be a string'),
+                : $this->fail('string'),
             'boolean' => is_bool($value)
                 ? $value
                 : (is_scalar($value) ? filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) : null)
-                    ?? $this->fail('must be true or false'),
+                    ?? $this->fail('boolean'),
             'integer' => is_int($value)
                 ? $value
                 : (is_scalar($value) && !is_bool($value) && ($int = filter_var($value, FILTER_VALIDATE_INT)) !== false
                     ? $int
-                    : $this->fail('must be an integer')),
+                    : $this->fail('integer')),
             'float' => is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))
                 ? (float) $value
-                : $this->fail('must be a number'),
-            'array' => is_array($value) ? $value : $this->fail('must be an array'),
+                : $this->fail('number'),
+            'array' => is_array($value) ? $value : $this->fail('array'),
             'select' => $this->matchOption($value),
             'enum' => $this->matchEnum($value),
-            default => $this->fail("has an unknown type '{$this->type}'"),
+            default => throw new InvalidSettingValue("The {$this->key} setting has an unknown type '{$this->type}'."),
         };
+    }
+
+    /**
+     * Normalise a value and check it against the setting's rules.
+     *
+     * @throws InvalidSettingValue
+     * @throws ValidationException
+     */
+    public function validate(mixed $value): mixed {
+        $value = $this->normalize($value);
+
+        if ($this->rules === []) {
+            return $value;
+        }
+
+        // Size rules (min, max, between…) need to know the type to compare
+        // numbers, string lengths or array counts correctly.
+        $typeRule = match ($this->type) {
+            'integer' => 'integer',
+            'float' => 'numeric',
+            'array' => 'array',
+            'string' => 'string',
+            default => null,
+        };
+
+        Validator::make(
+            ['value' => self::export($value)],
+            ['value' => array_merge($value === null ? ['nullable'] : [], $typeRule ? [$typeRule] : [], $this->rules)],
+            [],
+            ['value' => $this->getLabel()]
+        )->validate();
+
+        return $value;
+    }
+
+    /**
+     * Whether an empty form field (null or "") stores nothing: it keeps an
+     * encrypted value, and removes the stored value of a nullable setting.
+     */
+    public function ignoresBlank(mixed $value): bool {
+        return ($value === null || $value === '') && ($this->encrypted || $this->nullable);
     }
 
     /**
@@ -493,7 +555,7 @@ class Definition {
             }
         }
 
-        return $this->fail('must be one of: ' . implode(', ', $this->options));
+        return $this->fail('one_of', ['values' => implode(', ', $this->options)]);
     }
 
     protected function matchEnum(mixed $value): BackedEnum {
@@ -514,7 +576,7 @@ class Definition {
             }
         }
 
-        return $this->fail('must be one of: ' . implode(', ', array_map(fn ($case) => $case->value, $cases)));
+        return $this->fail('one_of', ['values' => implode(', ', array_map(fn ($case) => $case->value, $cases))]);
     }
 
     protected function translate(string $suffix): ?string {
@@ -532,7 +594,11 @@ class Definition {
         return is_string($text) ? $text : $key;
     }
 
-    protected function fail(string $reason): never {
-        throw new InvalidSettingValue("The {$this->key} setting {$reason}.");
+    /**
+     * @param string $line a line of the package's messages language file
+     * @param array<string, int|string> $replace
+     */
+    protected function fail(string $line, array $replace = []): never {
+        throw InvalidSettingValue::translated($line, ['key' => $this->key] + $replace);
     }
 }

@@ -4,12 +4,14 @@ namespace Metalinked\LaravelSettingsKit;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Metalinked\LaravelSettingsKit\Events\SettingReset;
 use Metalinked\LaravelSettingsKit\Events\SettingUpdated;
 use Metalinked\LaravelSettingsKit\Exceptions\InvalidSettingValue;
 use Metalinked\LaravelSettingsKit\Exceptions\SettingNotOverridableException;
+use Metalinked\LaravelSettingsKit\Exceptions\UndefinedSettingException;
+use Metalinked\LaravelSettingsKit\Rules\SettingRule;
 
 /**
  * Settings as seen from one scope: global, or a model (user, team, tenant…).
@@ -81,53 +83,139 @@ class ScopedSettings {
     public function set(string|array $key, mixed $value = null): void {
         $values = is_array($key) ? $key : [$key => $value];
         $definitions = [];
-        $normalized = [];
-        $errors = [];
 
-        foreach ($values as $k => $v) {
-            $k = (string) $k;
-            $definition = $this->registry->resolve($k);
+        foreach (array_keys($values) as $k) {
+            $definition = $this->registry->resolve((string) $k);
 
-            if (!$this->scope->isGlobal() && !$definition->isOverridableBy($this->scope->modelClass())) {
-                throw SettingNotOverridableException::for($k, $this->scope->modelClass());
+            if (!$this->usesOwnValue($definition)) {
+                throw SettingNotOverridableException::for((string) $k, $this->scope->modelClass());
             }
 
-            try {
-                $normalized[$k] = $definition->normalize($v);
-                $this->validateRules($definition, $normalized[$k]);
-                $definitions[$k] = $definition;
-            } catch (InvalidSettingValue $e) {
-                $errors[$k] = [$e->getMessage()];
-            } catch (ValidationException $e) {
-                $errors[$k] = $e->validator->errors()->all();
-            }
+            $definitions[$k] = $definition;
         }
+
+        [$normalized, $errors] = $this->check($definitions, $values);
 
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
 
-        $previous = $this->many(array_keys($normalized));
+        $this->write($definitions, $normalized);
+    }
 
-        $encoded = [];
+    /**
+     * Save a submitted form in one call. Like set(), except that an empty field
+     * (null or "") keeps an encrypted value, and removes the stored value of a
+     * nullable setting so it falls back again. Keys that are not in the array
+     * are left alone. Every field is checked before anything is written, and
+     * keys that are undefined or not overridable here are validation errors,
+     * so user input can be passed in.
+     *
+     * @param array<array-key, mixed> $values setting key => value
+     *
+     * @throws ValidationException
+     */
+    public function fill(array $values): void {
+        $definitions = [];
+        $filled = [];
+        $blank = [];
+        $errors = [];
 
-        foreach ($normalized as $k => $v) {
-            $encoded[$k] = $definitions[$k]->encode($v);
+        foreach ($values as $k => $v) {
+            $definition = $this->registry->get((string) $k);
+
+            if ($definition === null) {
+                $errors[$k] = [Messages::get('unknown', ['key' => $k])];
+            } elseif (!$this->usesOwnValue($definition)) {
+                $errors[$k] = [Messages::get('not_editable', ['key' => $k])];
+            } elseif (!$definition->ignoresBlank($v)) {
+                $definitions[$k] = $definition;
+                $filled[$k] = $v;
+            } elseif (!$definition->isEncrypted()) {
+                $blank[] = (string) $k;
+            }
         }
 
-        $this->repository->put($this->scope, $encoded);
+        [$normalized, $invalid] = $this->check($definitions, $filled);
 
-        DB::afterCommit(function () use ($normalized, $previous) {
-            foreach ($normalized as $k => $v) {
-                event(new SettingUpdated($k, $v, $previous[$k], $this->scope, $this->settable));
-            }
+        if ($errors + $invalid !== []) {
+            throw ValidationException::withMessages($errors + $invalid);
+        }
+
+        DB::transaction(function () use ($definitions, $normalized, $blank) {
+            $this->write($definitions, $normalized);
+            $this->forget($blank);
         });
     }
 
     /**
+     * Validation rules for form fields that hold settings, to check them with
+     * the rest of a request and get the errors under the form's field names:
+     *
+     *     $request->validate(Settings::rules(['conversion' => 'points.conversion']));
+     *
+     * @param array<array-key, string> $fields field name => setting key
+     * @return array<string, list<SettingRule>>
+     */
+    public function rules(array $fields): array {
+        $rules = [];
+
+        foreach ($fields as $field => $key) {
+            if (!is_string($field)) {
+                throw new InvalidArgumentException("Pass rules() an array of field name => setting key, such as ['field' => '{$key}'].");
+            }
+
+            $definition = $this->registry->get($key) ?? throw UndefinedSettingException::for($key);
+
+            if (!$this->usesOwnValue($definition)) {
+                throw SettingNotOverridableException::for($key, $this->scope->modelClass());
+            }
+
+            $rules[$field] = [new SettingRule($definition)];
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Write stored values into Laravel's configuration, for settings that
+     * declare a "config" key. A setting with nothing stored leaves the
+     * configuration alone, undoing what an earlier call wrote.
+     *
+     * @param list<string>|null $keys every setting with a "config" key when null
+     */
+    public function applyConfig(?array $keys = null): void {
+        $keys ??= array_map('strval', array_keys(array_filter(
+            $this->registry->all(),
+            fn (Definition $definition) => $definition->getConfig() !== null
+        )));
+        $targets = [];
+
+        foreach ($keys as $key) {
+            $definition = $this->registry->get($key) ?? throw UndefinedSettingException::for($key);
+            $path = $definition->getConfig()
+                ?? throw new InvalidArgumentException("Setting '{$key}' has no config key in its definition.");
+            $targets[] = [$definition, $path];
+        }
+
+        $bridge = app(ConfigBridge::class);
+        $config = app('config');
+        $nothing = new \stdClass();
+
+        foreach ($targets as [$definition, $path]) {
+            $value = $this->storedValue($definition, $nothing);
+
+            if ($value === $nothing) {
+                $bridge->restore($config, $path);
+            } else {
+                $bridge->write($config, $path, Definition::export($value));
+            }
+        }
+    }
+
+    /**
      * Whether this scope stores its own value for the key (for a model: whether
-     * it overrides the global value; for global: whether it differs from the
-     * code default).
+     * it overrides the global value). A stored value may equal the default.
      */
     public function has(string $key): bool {
         return array_key_exists($key, $this->repository->values($this->scope));
@@ -187,8 +275,8 @@ class ScopedSettings {
     }
 
     /**
-     * Only the values stored in this scope (a user's overrides, or the global
-     * values that differ from their defaults).
+     * Only the values stored in this scope (a model's overrides, or the stored
+     * global values).
      *
      * @return array<string, mixed>
      */
@@ -264,27 +352,71 @@ class ScopedSettings {
             : $fallback;
     }
 
-    protected function validateRules(Definition $definition, mixed $value): void {
-        if ($definition->getRules() === []) {
+    /**
+     * The value stored for this scope, or else for the global one; $fallback
+     * when neither stores a usable value.
+     */
+    protected function storedValue(Definition $definition, mixed $fallback): mixed {
+        $global = $this->globalValue($definition, $fallback);
+
+        if (!$this->usesOwnValue($definition)) {
+            return $global;
+        }
+
+        $own = $this->repository->values($this->scope);
+
+        return array_key_exists($definition->key, $own)
+            ? $definition->decode($own[$definition->key], $global)
+            : $global;
+    }
+
+    /**
+     * @param array<array-key, Definition> $definitions
+     * @param array<array-key, mixed> $values
+     * @return array{array<array-key, mixed>, array<array-key, array<mixed>>} valid values and errors
+     */
+    protected function check(array $definitions, array $values): array {
+        $valid = [];
+        $errors = [];
+
+        foreach ($values as $key => $value) {
+            try {
+                $valid[$key] = $definitions[$key]->validate($value);
+            } catch (InvalidSettingValue $e) {
+                $errors[$key] = [$e->getMessage()];
+            } catch (ValidationException $e) {
+                $errors[$key] = $e->validator->errors()->all();
+            }
+        }
+
+        return [$valid, $errors];
+    }
+
+    /**
+     * Store values that already passed check().
+     *
+     * @param array<array-key, Definition> $definitions
+     * @param array<array-key, mixed> $values
+     */
+    protected function write(array $definitions, array $values): void {
+        if ($values === []) {
             return;
         }
 
-        // Size rules (min, max, between…) need to know the type to compare
-        // numbers, string lengths or array counts correctly.
-        $typeRule = match ($definition->getType()) {
-            'integer' => 'integer',
-            'float' => 'numeric',
-            'array' => 'array',
-            'string' => 'string',
-            default => null,
-        };
+        $previous = $this->many(array_map('strval', array_keys($values)));
+        $encoded = [];
 
-        Validator::make(
-            ['value' => Definition::export($value)],
-            ['value' => array_merge($value === null ? ['nullable'] : [], $typeRule ? [$typeRule] : [], $definition->getRules())],
-            [],
-            ['value' => $definition->getLabel()]
-        )->validate();
+        foreach ($values as $k => $v) {
+            $encoded[$k] = $definitions[$k]->encode($v);
+        }
+
+        $this->repository->put($this->scope, $encoded);
+
+        DB::afterCommit(function () use ($values, $previous) {
+            foreach ($values as $k => $v) {
+                event(new SettingUpdated((string) $k, $v, $previous[$k], $this->scope, $this->settable));
+            }
+        });
     }
 
     /**

@@ -7,8 +7,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Declare your settings here (or with Settings::define() in a service
-    | provider). Definitions live in code; the database only stores values
-    | that differ from the default.
+    | provider). Definitions live in code; the database only stores the values
+    | that have been saved, and every other setting uses its default.
     |
     | Short form — the type is inferred from the default:
     |     'site_name' => 'My App',
@@ -20,6 +20,7 @@ return [
     |         'options' => ['light', 'dark', 'auto'],
     |         'overridable' => true,         // users (or any model) may override it
     |         'rules' => ['required'],       // extra Laravel validation rules
+    |         'config' => 'app.theme',       // where Settings::applyConfig() writes it
     |     ],
     |
     */
