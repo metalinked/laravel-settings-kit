@@ -2,12 +2,17 @@
 
 namespace Metalinked\LaravelSettingsKit;
 
+use Closure;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use JsonException;
 use Metalinked\LaravelSettingsKit\Events\SettingReset;
+use Metalinked\LaravelSettingsKit\Events\SettingUnreadable;
 use Metalinked\LaravelSettingsKit\Events\SettingUpdated;
 use Metalinked\LaravelSettingsKit\Exceptions\InvalidSettingValue;
 use Metalinked\LaravelSettingsKit\Exceptions\SettingNotOverridableException;
@@ -43,7 +48,7 @@ class ScopedSettings {
             $own = $this->repository->values($this->scope);
 
             if (array_key_exists($key, $own)) {
-                return $definition->decode($own[$key], $this->globalValue($definition, $fallback));
+                return $this->decode($definition, $own[$key], $this->scope, fn () => $this->globalValue($definition, $fallback));
             }
         }
 
@@ -351,6 +356,7 @@ class ScopedSettings {
                 'encrypted' => $secret,
                 'nullable' => $definition->isNullable(),
                 'options' => $definition->getOptions(),
+                'rules' => array_values(array_filter($definition->getRules(), 'is_string')),
                 'meta' => $definition->getMeta(),
             ];
         }
@@ -366,8 +372,40 @@ class ScopedSettings {
         $global = $this->repository->values(Scope::global());
 
         return array_key_exists($definition->key, $global)
-            ? $definition->decode($global[$definition->key], $fallback)
+            ? $this->decode($definition, $global[$definition->key], Scope::global(), fn () => $fallback)
             : $fallback;
+    }
+
+    /**
+     * A stored value in its PHP type, or the fallback when it cannot be read,
+     * which is logged and announced with a SettingUnreadable event.
+     *
+     * @param Closure(): mixed $fallback
+     */
+    protected function decode(Definition $definition, string $raw, Scope $scope, Closure $fallback): mixed {
+        try {
+            return $definition->read($raw);
+        } catch (DecryptException) {
+            $reason = SettingUnreadable::DECRYPTION;
+        } catch (InvalidSettingValue|JsonException) {
+            $reason = SettingUnreadable::INVALID;
+        }
+
+        // Marked before dispatching, so a listener may read the setting.
+        if ($this->repository->firstReport($scope, $definition->key)) {
+            if (config('settings-kit.log_unreadable', true)) {
+                Log::warning('A stored setting value cannot be read, so its fallback is used.', [
+                    'key' => $definition->key,
+                    'reason' => $reason,
+                    'settable_type' => $scope->type,
+                    'settable_id' => $scope->id,
+                ]);
+            }
+
+            event(new SettingUnreadable($definition->key, $reason, $scope, $scope->isGlobal() ? null : $this->settable));
+        }
+
+        return $fallback();
     }
 
     /**
@@ -391,7 +429,7 @@ class ScopedSettings {
                 continue;
             }
 
-            $value = $definition->decode($values[$definition->key], $result);
+            $value = $this->decode($definition, $values[$definition->key], $scope, fn () => $result);
 
             if (!$definition->isNullable() || ($value !== null && $value !== '')) {
                 $result = $value;
@@ -469,9 +507,13 @@ class ScopedSettings {
 
         DB::afterCommit(function () use ($values, $previous) {
             foreach ($values as $k => $v) {
-                event(new SettingUpdated((string) $k, $v, $previous[$k], $this->scope, $this->settable));
+                event(new SettingUpdated((string) $k, $v, $previous[$k], $this->scope, $this->settable, $this->isSecret((string) $k)));
             }
         });
+    }
+
+    protected function isSecret(string $key): bool {
+        return $this->registry->get($key)?->isEncrypted() ?? false;
     }
 
     /**
@@ -480,7 +522,7 @@ class ScopedSettings {
     protected function dispatchResets(array $previous): void {
         DB::afterCommit(function () use ($previous) {
             foreach ($previous as $key => $value) {
-                event(new SettingReset($key, $value, $this->scope, $this->settable));
+                event(new SettingReset($key, $value, $this->scope, $this->settable, $this->isSecret((string) $key)));
             }
         });
     }

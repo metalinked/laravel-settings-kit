@@ -18,6 +18,8 @@ class SettingReset {
         public readonly mixed $previous,
         public readonly Scope $scope,
         public readonly ?Model $settable = null,
+        /** Whether the setting is a secret. The values here are decrypted. */
+        public readonly bool $encrypted = false,
     ) {
     }
 }

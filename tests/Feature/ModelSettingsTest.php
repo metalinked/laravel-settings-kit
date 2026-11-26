@@ -177,6 +177,7 @@ class ModelSettingsTest extends TestCase {
             'encrypted' => false,
             'nullable' => false,
             'options' => [['value' => 'light', 'label' => 'Light'], ['value' => 'dark', 'label' => 'Dark']],
+            'rules' => [],
             'meta' => [],
         ], $panel['theme']);
         $this->assertTrue($panel['notifications.email']['overridden']);

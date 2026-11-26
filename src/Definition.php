@@ -548,12 +548,23 @@ class Definition {
      */
     public function decode(string $raw, mixed $fallback = null): mixed {
         try {
-            $json = $this->encrypted ? Crypt::decryptString($raw) : $raw;
-
-            return $this->normalize(json_decode($json, true, 512, JSON_THROW_ON_ERROR));
+            return $this->read($raw);
         } catch (InvalidSettingValue|DecryptException|\JsonException) {
             return $fallback;
         }
+    }
+
+    /**
+     * Like decode(), but throwing when the stored value cannot be read.
+     *
+     * @throws InvalidSettingValue
+     * @throws DecryptException
+     * @throws \JsonException
+     */
+    public function read(string $raw): mixed {
+        $json = $this->encrypted ? Crypt::decryptString($raw) : $raw;
+
+        return $this->normalize(json_decode($json, true, 512, JSON_THROW_ON_ERROR));
     }
 
     /**
