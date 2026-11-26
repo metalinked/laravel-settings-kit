@@ -269,6 +269,22 @@ With the same `field => key` map as a second argument, `fill()` reads the values
 
 Nothing is saved by validating.
 
+### Rules that depend on another field
+
+The `rules` of a definition only see their own value, so `required_if` and `required_with` do not work there. Add them in the request, next to what `rules()` returns:
+
+```php
+$rules = Settings::rules([
+    'card' => 'payments.card',           // a boolean
+    'terminal' => 'payments.terminal',   // a nullable string
+]);
+$rules['terminal'][] = 'required_if_accepted:card';
+
+$data = $request->validate($rules);
+```
+
+`fill()` and `set()` do not check these. For an encrypted setting the rule also fails when the field is left empty to keep the stored value, so add it only while `Settings::has()` is `false`.
+
 An empty field keeps an encrypted value. To let a form delete one, call `forget()` after `fill()`, with both inside a `DB::transaction()`.
 
 ## Validation and error messages
@@ -371,12 +387,15 @@ $user->settings()->panel('appearance');
         'encrypted' => false,
         'nullable' => false,
         'options' => [['value' => 'light', 'label' => 'Light'], ['value' => 'dark', 'label' => 'Dark']],
+        'rules' => [],              // the setting's rules written as strings, such as 'min:8'
         'meta' => [],
     ],
 ]
 ```
 
 For a model, the panel only lists settings that model may override. `Settings::panel()` lists every setting with its global value.
+
+`rules` leaves out rule objects and closures, which cannot be sent as JSON. The JSON endpoints include it, so a rule such as `exists:users,email` shows a table name to whoever can read the panel.
 
 The package does not ship any UI: `panel()` is the data, and your app renders it with whatever it already uses. See [docs/settings-screens.md](docs/settings-screens.md) for complete examples with Blade, Livewire and a JavaScript SPA.
 
@@ -409,7 +428,21 @@ Settings declared with `encrypted` are stored encrypted with your `APP_KEY`. The
 - `settings:list` shows `(encrypted)` instead of the value.
 - `settings:export` skips them unless you pass `--with-secrets`. The resulting file then contains them in plain text.
 
-`SettingUpdated` and `SettingReset` events do carry the decrypted value, so do not log them blindly. If you rotate `APP_KEY`, keep the old key in `APP_PREVIOUS_KEYS`: values that can no longer be decrypted fall back to their default.
+`SettingUpdated` and `SettingReset` events do carry the decrypted value, and `$event->encrypted` is `true` for them. Check it before logging an event, and remember that a queued listener stores the event, secret included, in your queue.
+
+### After changing `encrypted` or `APP_KEY`
+
+Stored values are not converted by themselves. Run this after either change:
+
+```bash
+php artisan settings:encrypt
+```
+
+- Values of `encrypted` settings that are stored as plain text get encrypted. Until then they read as their fallback.
+- Encrypted values are encrypted again with the current `APP_KEY`. To rotate it, keep the old key in `APP_PREVIOUS_KEYS`, run the command, and then remove the old key.
+- If a setting is no longer `encrypted`, its values are only decrypted with `--decrypt`.
+
+The command covers global values and model overrides of defined settings. It fails if some value cannot be read, so a deploy script can stop before the old key is removed. `--dry-run` shows what it would do.
 
 ## JSON endpoints
 
@@ -442,12 +475,29 @@ Gate::define('manage-settings', fn (User $user) => $user->is_admin);
 
 The write endpoints (`PATCH` and `DELETE`) are rate limited with the `throttle` middleware, 60 requests per minute by default. A single `PATCH` accepts at most 100 settings, and each value may be at most 10 KB once encoded as JSON; anything bigger returns a 422 before anything is written. Change these in `http.throttle` (`'attempts,minutes'`, or `null` to turn it off), `http.max_keys` and `http.max_value_bytes`.
 
+## Renaming a setting
+
+Stored values belong to a key. When you rename a setting, change its definition and move the values as part of the deploy:
+
+```bash
+php artisan settings:rename mail.sender mail.from_address
+```
+
+It moves the global value and every override. Run it before `settings:prune`, which deletes the values of keys that are no longer defined. A scope that already stores the new key keeps that value unless you pass `--overwrite`. Running the command again does no harm.
+
 ## Events
 
-- `SettingUpdated` (`key`, `value`, `previous`, `scope`, `settable`) is dispatched after a value is stored.
-- `SettingReset` (`key`, `previous`, `scope`, `settable`) is dispatched after a stored value is removed.
+- `SettingUpdated` (`key`, `value`, `previous`, `scope`, `settable`, `encrypted`) is dispatched after a value is stored.
+- `SettingReset` (`key`, `previous`, `scope`, `settable`, `encrypted`) is dispatched after a stored value is removed.
+- `SettingUnreadable` (`key`, `reason`, `scope`, `settable`) is dispatched when a stored value cannot be read. See [Unreadable values](#unreadable-values).
 
-Both are dispatched once the surrounding database transaction commits. `settable` is the model for model scopes, and `null` for global ones or when the scope was given as a type and id.
+`SettingUpdated` and `SettingReset` are dispatched once the surrounding database transaction commits. `settable` is the model for model scopes, and `null` for global ones or when the scope was given as a type and id.
+
+## Unreadable values
+
+A stored value reads as its fallback (the global value or the default) when it cannot be decrypted, or when it no longer fits the definition, for example after changing a type or removing an option. The package then logs a warning and dispatches `SettingUnreadable`, once per request or job for each scope and key. `reason` is `decryption` or `invalid`. Neither the log nor the event includes the stored value.
+
+To fix it, save the setting again or remove the value with `forget()`. If encryption is the cause, run `settings:encrypt`. Set `log_unreadable` to `false` in the config to stop the warnings.
 
 ## Strict mode
 
@@ -463,6 +513,8 @@ By default, keys that were never defined still work with `get()` and `set()` as 
 | `settings:export {path?} {--all} {--with-secrets}` | Export global values as JSON (stored values only, or all with `--all`). Encrypted settings are skipped unless `--with-secrets`. |
 | `settings:import {path} {--dry-run}` | Validate and import global values from JSON. |
 | `settings:prune {--force}` | Delete values of settings that are no longer defined, and overrides that are no longer allowed. |
+| `settings:rename {from} {to} {--overwrite}` | Move stored values to a new key, in every scope. See [Renaming a setting](#renaming-a-setting). |
+| `settings:encrypt {--decrypt} {--dry-run}` | Encrypt stored values with the current `APP_KEY`. See [Encrypted settings](#encrypted-settings). |
 | `settings:clear-cache` | Invalidate every cached value. |
 | `settings:upgrade-from-v1` | Convert a 1.x installation. See [UPGRADE.md](UPGRADE.md). |
 
