@@ -19,7 +19,7 @@ Each panel item looks like this (see the README for every field):
 ```php
 ['key' => 'appearance.theme', 'type' => 'select', 'label' => 'Theme', 'description' => null,
  'value' => 'dark', 'default' => 'light', 'filled' => true, 'overridden' => true, 'encrypted' => false,
- 'nullable' => false, 'options' => [['value' => 'light', 'label' => 'Light'], ...], 'meta' => []]
+ 'nullable' => false, 'options' => [['value' => 'light', 'label' => 'Light'], ...], 'rules' => [], 'meta' => []]
 ```
 
 Three rules apply to every screen:
