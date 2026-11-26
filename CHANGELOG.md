@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/metalinked/laravel-settings-kit/compare/v2.2.0...v2.3.0) (2026-11-26)
+
+### Features
+
+* a stored value that cannot be decrypted, or no longer fits its definition, logs a warning and dispatches `SettingUnreadable`, once per request or job for each scope and key. Neither carries the value. `log_unreadable` turns the warning off
+* `settings:encrypt` encrypts the plain values of `encrypted` settings and encrypts the others again with the current `APP_KEY`. It decrypts only with `--decrypt`, and fails if some value cannot be read
+* `settings:rename` moves the global value and every override of a setting to a new key
+* `SettingUpdated` and `SettingReset` have an `encrypted` property, `true` for secrets
+* each `panel()` entry, and so each JSON endpoint response, has the `rules` of the setting that are written as strings
+* README: rules that depend on another field of a form
+
+### Upgrading
+
+* if stored values no longer fit their definitions, the log now shows a warning for them. Save or remove those values, run `settings:encrypt` if encryption is the cause, or set `log_unreadable` to `false`
+* whoever can read a panel can now read the string rules, such as `exists:users,email` with its table name
+* update tests or clients that expect the exact keys of a `panel()` entry
+
 ## [2.2.0](https://github.com/metalinked/laravel-settings-kit/compare/v2.1.0...v2.2.0) (2026-11-25)
 
 ### Features
