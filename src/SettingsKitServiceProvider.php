@@ -5,10 +5,12 @@ namespace Metalinked\LaravelSettingsKit;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 use Metalinked\LaravelSettingsKit\Console\ClearCacheCommand;
+use Metalinked\LaravelSettingsKit\Console\EncryptSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\ExportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\ImportSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\ListSettingsCommand;
 use Metalinked\LaravelSettingsKit\Console\PruneSettingsCommand;
+use Metalinked\LaravelSettingsKit\Console\RenameSettingCommand;
 use Metalinked\LaravelSettingsKit\Console\UpgradeFromV1Command;
 
 class SettingsKitServiceProvider extends ServiceProvider {
@@ -55,6 +57,8 @@ class SettingsKitServiceProvider extends ServiceProvider {
                 ExportSettingsCommand::class,
                 ImportSettingsCommand::class,
                 PruneSettingsCommand::class,
+                RenameSettingCommand::class,
+                EncryptSettingsCommand::class,
                 UpgradeFromV1Command::class,
             ]);
         }

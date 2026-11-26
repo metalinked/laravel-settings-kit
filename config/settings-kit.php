@@ -42,6 +42,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Unreadable values
+    |--------------------------------------------------------------------------
+    |
+    | A stored value that cannot be decrypted, or that no longer fits its
+    | definition, reads as its fallback. A SettingUnreadable event is always
+    | dispatched, and a warning is logged unless you turn it off here.
+    |
+    */
+    'log_unreadable' => true,
+
+    /*
+    |--------------------------------------------------------------------------
     | Database table
     |--------------------------------------------------------------------------
     */
